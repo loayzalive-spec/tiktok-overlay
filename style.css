@@ -1,0 +1,104 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: transparent;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.likes-box {
+  position: relative;
+  width: var(--slider-img-height, 56px);
+  height: var(--slider-img-height, 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.likes-box img {
+  width: calc(var(--slider-img-height, 56px) * 0.786);
+  height: calc(var(--slider-img-height, 56px) * 0.786);
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.likes-box .cantidad {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: calc(var(--slider-img-height, 56px) * 0.32);
+  font-weight: 900;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Slider overlay styles */
+.overlay-container {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: transparent;
+  display: flex;
+  align-items: center;
+}
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: var(--slider-item-gap, 20px);
+  padding: 0;
+  /* animation is set from JS to compute duration dynamically */
+}
+
+.slider .item {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(40, 40, 40, 0.6);
+  padding: var(--item-padding-v, 12px) var(--item-padding-h, 16px);
+  border-radius: 10px;
+  white-space: nowrap;
+  border: 3px solid transparent;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* Indicadores de bueno (verde) y malo (rojo) */
+.slider .item-bueno {
+  border-color: #00ff41;
+  box-shadow: 0 4px 15px rgba(0, 255, 65, 0.3), inset 0 0 10px rgba(0, 255, 65, 0.1);
+}
+
+.slider .item-malo {
+  border-color: #ff0033;
+  box-shadow: 0 4px 15px rgba(255, 0, 51, 0.3), inset 0 0 10px rgba(255, 0, 51, 0.1);
+}
+
+.slider img {
+  /* Altura controlable vía la variable CSS --slider-img-height (definida por JS)
+     por defecto 56px. */
+  height: var(--slider-img-height, 56px);
+  max-height: 100%;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.flecha {
+  font-size: 20px;
+  color: #888888;
+  opacity: 0.8;
+  font-weight: bold;
+}
+

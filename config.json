@@ -1,0 +1,9 @@
+{
+  "sliderConfig": {
+    "imageHeight": 100,
+    "speedPxPerSec": 120,
+    "itemGap": 5,
+    "itemPaddingVertical": 6,
+    "itemPaddingHorizontal": 8
+  }
+}

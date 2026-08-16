@@ -1,0 +1,65 @@
+[
+  {
+    "tipo": "normal",
+    "efecto": "malo",
+    "regalo": "images/regalos/Follow.png",
+    "imagen": "images/sm64/bread.png"
+  }, 
+
+  {
+    "tipo": "like",
+    "efecto": "malo",
+    "regalo": "images/regalos/Like.png",
+    "cantidad": 50,
+    "imagen": "images/sm64/milk.png"
+  }, 
+  
+  {
+    "tipo": "normal",
+    "efecto": "malo",
+    "regalo": "images/regalos/Heart Me.png",
+    "imagen": "images/sm64/bananaPeel.png"
+  },
+  {
+    "tipo": "normal",
+    "efecto": "malo",
+    "regalo": "images/regalos/Rose.png",
+    "imagen": "images/sm64/conejo peluche.png"
+  },
+  {
+    "tipo": "normal",
+    "efecto": "bueno",
+    "regalo": "images/regalos/Finger Heart.png",
+    "imagen": "images/sm64/refillhp.png"
+  },
+  {
+    "tipo": "normal",
+    "efecto": "bueno",
+    "regalo": "images/regalos/Rosa.png",
+    "imagen": "images/sm64/shotgun.png"
+  },
+  {
+    "tipo": "normal",
+    "efecto": "malo",
+    "regalo": "images/regalos/Doughnut.png",
+    "imagen": "images/sm64/spawnEnemy.png"
+  },
+  {
+    "tipo": "normal",
+    "efecto": "malo",
+    "regalo": "images/regalos/Perfume.png",
+    "imagen": "images/sm64/piano.png"
+  },
+  {
+    "tipo": "normal",
+    "efecto": "malo",
+    "regalo": "images/regalos/Capybara.png",
+    "imagen": "images/sm64/tornado.png"
+  }, 
+  {
+    "tipo": "normal",
+    "efecto": "malo",
+    "regalo": "images/regalos/Corgi.png",
+    "imagen": "images/sm64/killplayer.png"
+  }  
+]
