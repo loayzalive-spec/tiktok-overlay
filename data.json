@@ -1,19 +1,4 @@
-[
-  {
-    "tipo": "normal",
-    "efecto": "malo",
-    "regalo": "images/regalos/Follow.png",
-    "imagen": "images/sm64/bread.png"
-  }, 
-
-  {
-    "tipo": "like",
-    "efecto": "malo",
-    "regalo": "images/regalos/Like.png",
-    "cantidad": 50,
-    "imagen": "images/sm64/milk.png"
-  }, 
-  
+[ 
   {
     "tipo": "normal",
     "efecto": "malo",
@@ -41,13 +26,13 @@
   {
     "tipo": "normal",
     "efecto": "malo",
-    "regalo": "images/regalos/Doughnut.png",
+    "regalo": "images/regalos/GG.png",
     "imagen": "images/sm64/spawnEnemy.png"
   },
   {
     "tipo": "normal",
     "efecto": "malo",
-    "regalo": "images/regalos/Perfume.png",
+    "regalo": "images/regalos/You're awesome.png",
     "imagen": "images/sm64/piano.png"
   },
   {
