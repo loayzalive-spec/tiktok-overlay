@@ -3,12 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <title>Overlay Interacciones</title>
+
+  <!--
+    Fuente de pixel para el skin "megaman" (config.json -> "skin").
+    Si OBS no tiene internet no pasa nada: el skin declara un
+    fallback monospace y solo se pierde la tipografia.
+    Los demas skins y el overlay sin skin no la usan.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="overlay-container">
     <div class="slider" id="slider"></div>
   </div>
+
+  <!--
+    Modo "catalog" (ver config.json -> "mode"). No reemplaza al
+    slider de arriba: script.js elige uno u otro segun el modo y
+    deja el que no se usa vacio/oculto. El slider viejo no se toca.
+  -->
+  <div class="catalog-container" id="catalogContainer" hidden>
+    <!--
+      Cada equipo es una columna con su titulo opcional arriba y su
+      cuadricula debajo. El titulo sale de config.json
+      (catalogConfig.bueno.title / .malo.title); si no esta, script.js
+      deja el <div> vacio y oculto y la cuadricula ocupa todo el alto,
+      igual que antes de que existieran los titulos.
+    -->
+    <div class="catalog-team" id="catalogTeamBueno">
+      <div class="catalog-title catalog-title-bueno" id="catalogTitleBueno" hidden></div>
+      <div class="catalog-column catalog-column-bueno" id="catalogBueno"></div>
+    </div>
+
+    <div class="catalog-team" id="catalogTeamMalo">
+      <div class="catalog-title catalog-title-malo" id="catalogTitleMalo" hidden></div>
+      <div class="catalog-column catalog-column-malo" id="catalogMalo"></div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>

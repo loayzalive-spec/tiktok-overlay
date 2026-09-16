@@ -102,3 +102,517 @@ body {
   font-weight: bold;
 }
 
+/* ============================================================
+   MODO "catalog"
+   ============================================================
+   Estilos nuevos, no tocan nada de .slider / .item de arriba.
+
+   Franja que ocupa TODO el tamaño de la fuente de OBS. Buenos
+   siempre a la izquierda, malos siempre a la derecha. Cada equipo
+   es una cuadricula cuyas columnas/filas pone script.js desde
+   config.json, y las imagenes se ajustan al tamaño de la celda.
+   ============================================================ */
+
+.catalog-container {
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  background: transparent;
+  display: flex;
+  flex-direction: row;
+  padding: var(--catalog-gap, 6px);
+  gap: var(--catalog-gap, 6px);
+}
+
+/* La regla de arriba (display: flex) es de autor y le gana a la
+   regla nativa del navegador para [hidden]. Sin esto, el atributo
+   hidden del HTML no ocultaria nada. */
+.catalog-container[hidden] {
+  display: none;
+}
+
+/* Columna de un equipo: titulo opcional arriba, cuadricula debajo.
+   flex-grow lo pone script.js = numero de columnas, asi el ancho se
+   reparte y todas las celdas miden lo mismo. */
+.catalog-team {
+  display: flex;
+  flex-direction: column;
+  gap: var(--catalog-gap, 6px);
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* "TEAM BUENO" / "TEAM MALO" (config.json -> catalogConfig.bueno.title
+   y .malo.title). Sin title en el config, script.js le deja el
+   atributo hidden y la cuadricula se queda con todo el alto. */
+.catalog-title {
+  flex: 0 0 auto;
+  color: white;
+  font-family: Arial, sans-serif;
+  font-weight: 900;
+  font-size: calc(var(--catalog-label-size, 14px) * 1.25);
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* .catalog-title de arriba no fija display, asi que el [hidden]
+   nativo del navegador basta. Se deja explicito por si alguna vez
+   se le pone un display de autor, que le ganaria. */
+.catalog-title[hidden] {
+  display: none;
+}
+
+/* La cuadricula toma el alto que sobra despues del titulo. */
+.catalog-column {
+  display: grid;
+  gap: var(--catalog-gap, 6px);
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Celda fija: el item va encima en posicion absoluta, para que al
+   rotar el que sale y el que entra se crucen en el mismo sitio sin
+   mover el resto de la cuadricula. */
+.catalog-slot {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.catalog-item {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  overflow: hidden;
+  background: rgba(30, 30, 30, 0.65);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  backdrop-filter: blur(10px);
+
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.catalog-column-bueno .catalog-item {
+  border-color: #00ff41;
+  box-shadow: 0 2px 10px rgba(0, 255, 65, 0.3), inset 0 0 8px rgba(0, 255, 65, 0.1);
+}
+
+.catalog-column-malo .catalog-item {
+  border-color: #ff0033;
+  box-shadow: 0 2px 10px rgba(255, 0, 51, 0.3), inset 0 0 8px rgba(255, 0, 51, 0.1);
+}
+
+/* Estado inicial del que entra (JS quita la clase un frame despues). */
+.catalog-item-entering {
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+/* Estado final del que sale (JS lo borra al terminar la transicion). */
+.catalog-item-leaving {
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+/* Fila: accion a la izquierda, regalo a la derecha. Cada uno toma
+   un % del ANCHO de la tarjeta (min-width:0 deja que flex los
+   achique), asi los dos crecen o se achican juntos segun el
+   espacio real de la celda, sin que el regalo invada la tarjeta
+   de al lado. flex-basis 0 + min-height 0 en el padre: la zona de
+   imagen toma exactamente el alto que sobra despues del texto. */
+.catalog-visual {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4%;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+}
+
+/* Imagen de la accion (sprite del juego). pixelated para que el
+   pixel art no se vea borroso al escalar. */
+/* Envoltorio de la imagen de accion: el que reparte el 62% de la
+   fila, y el que ancla el badge de cantidad/duracion a su esquina. */
+.catalog-main-wrap {
+  position: relative;
+  flex: 1 1 62%;
+  min-width: 0;
+  height: 100%;
+}
+
+.catalog-main-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+/* "x2", "x50"... o "12s", "20s"..., arriba, pegado al borde
+   derecho de la imagen de accion (justo antes de la imagen del
+   regalo). Un poco montado sobre la imagen (translate) para que no
+   quede flotando lejos del sprite, y con letra mas grande que
+   .catalog-action-label (2.2x --catalog-label-size).
+
+   El tamaño y la posicion se afinan desde config.json
+   (catalogConfig.badge -> scale / offsetX / offsetY), que script.js
+   convierte en estas tres variables. Los valores por defecto de
+   var() son los de siempre (escala 1, sin desplazar), asi que un
+   config.json sin la clave "badge" se ve igual que antes. */
+.catalog-count-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(
+    calc(-4% + var(--catalog-badge-x, 0px)),
+    calc(4% + var(--catalog-badge-y, 0px))
+  );
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: 900;
+  font-size: calc(var(--catalog-label-size, 14px) * 2.2 * var(--catalog-badge-scale, 1));
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Regalo de TikTok: mas chico, pegado a la derecha, DENTRO de la
+   tarjeta (ya no se superpone a la de al lado). Sube el "38%" para
+   agrandarlo (bajando el de arriba en la misma medida). */
+/* Envoltorio del regalo/like: mismo patron que .catalog-main-wrap,
+   para poder centrar el numero de likes ENCIMA del corazon. */
+.catalog-gift-wrap {
+  position: relative;
+  flex: 0 1 38%;
+  min-width: 0;
+  height: 100%;
+}
+
+.catalog-gift-badge {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
+}
+
+/* "50", "300", "1k"... centrado sobre el corazon de like. Solo
+   existe en reglas event:"like" (ver buildItem en script.js). */
+.catalog-like-count {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: 900;
+  font-size: calc(var(--catalog-label-size, 14px) * 1.3);
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.95);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.catalog-action-label {
+  flex: 0 0 auto;
+  max-width: 100%;
+  color: white;
+  font-family: Arial, sans-serif;
+  font-weight: 900;
+  font-size: var(--catalog-label-size, 14px);
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   SKIN "megaman"  (config.json -> "skin": "megaman")
+   ============================================================
+   Se activa solo cuando script.js pone data-skin="megaman" en el
+   <html>. Sin la clave "skin" en config.json no engancha nada de
+   aqui y el overlay se ve como siempre.
+
+   Todo lo de abajo son reglas NUEVAS bajo [data-skin="megaman"]:
+   no se modifico ni una linea de los estilos de arriba.
+
+   La paleta sale de los sprites reales del juego
+   (d:\megaman gml\sprites), no esta inventada:
+
+     spr_dialogue_box   -> #282828 fondo, borde blanco, rejilla
+     spr_hud_player     -> #0030B0 #1070D0 #50D0F0 (azul de X)
+     spr_hud_boss       -> #700070 #A000A0 #E090E0 (morado de jefe)
+     marco gris comun   -> #303030 #606060 #909090 #C0C0C0 #F0F0F0
+
+   Por eso el equipo "bueno" va en el cian de X y el "malo" en el
+   morado del HUD de jefe, que es como el juego los distingue.
+   ============================================================ */
+
+[data-skin="megaman"] {
+  --mm-bg: #282828;
+  --mm-bg-alto: #303030;
+  --mm-linea: #191919;
+  --mm-blanco: #F0F0F0;
+
+  --mm-x-claro: #50D0F0;
+  --mm-x-medio: #1070D0;
+  --mm-x-oscuro: #0030B0;
+
+  --mm-boss-claro: #E090E0;
+  --mm-boss-medio: #A000A0;
+  --mm-boss-oscuro: #700070;
+
+  /* Tamaño del chaflan de las esquinas (el corte en diagonal que
+     tienen todas las cajas del juego). */
+  --mm-chaflan: 7px;
+  /* Grosor del marco exterior. */
+  --mm-marco: 2px;
+}
+
+[data-skin="megaman"] body {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+/* Textura de rejilla del cuadro de dialogo: dos juegos de lineas
+   finas de 1px cada 4px, casi invisibles, que le quitan el aspecto
+   de rectangulo plano de CSS. */
+/* Dos capas, sin usar border (un border no sigue la forma del
+   clip-path y las esquinas cortadas quedarian sin marco):
+
+     .catalog-item  -> pinta el MARCO (color del equipo)
+     ::before       -> pinta el FONDO oscuro, metido --mm-marco px
+
+   El ::before va con z-index: -1 para quedar detras del contenido;
+   dentro de un contexto de apilado propio eso lo deja igualmente
+   DELANTE del fondo del elemento, que es justo lo que se busca: el
+   marco solo asoma por el borde. */
+[data-skin="megaman"] .catalog-item,
+[data-skin="megaman"] .slider .item {
+  /* Color del marco. Cada equipo lo pisa con su degradado abajo. */
+  background: var(--mm-blanco);
+
+  border: none;
+  border-radius: 0;
+
+  /* backdrop-filter sobre un clip-path con esquinas cortadas deja
+     restos del blur fuera de la forma en el navegador de OBS. */
+  backdrop-filter: none;
+
+  /* Contexto de apilado propio para que el z-index: -1 del ::before
+     no se escape de la tarjeta. No se confia en el transform del
+     CSS de arriba porque este skin lo anula al final del archivo. */
+  isolation: isolate;
+
+  /* Esquinas cortadas en diagonal, la firma visual de X6. */
+  clip-path: polygon(
+    0 var(--mm-chaflan),
+    var(--mm-chaflan) 0,
+    calc(100% - var(--mm-chaflan)) 0,
+    100% var(--mm-chaflan),
+    100% calc(100% - var(--mm-chaflan)),
+    calc(100% - var(--mm-chaflan)) 100%,
+    var(--mm-chaflan) 100%,
+    0 calc(100% - var(--mm-chaflan))
+  );
+}
+
+/* El interior: fondo #282828 con la rejilla del cuadro de dialogo.
+   clip-path: inherit repite el mismo polygon sobre SU caja (que es
+   --mm-marco px mas chica), asi el chaflan del interior sigue al de
+   fuera y el marco mantiene el grosor tambien en las diagonales. */
+[data-skin="megaman"] .catalog-item::before,
+[data-skin="megaman"] .slider .item::before {
+  content: '';
+  position: absolute;
+  inset: var(--mm-marco);
+  z-index: -1;
+  background-color: var(--mm-bg);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px);
+  clip-path: inherit;
+  pointer-events: none;
+}
+
+[data-skin="megaman"] .slider .item {
+  position: relative;
+}
+
+/* El color de equipo va en el MARCO, es decir en el background del
+   propio elemento (el ::before de arriba tapa el centro).
+
+   El brillo se hace con filter: drop-shadow y no con box-shadow
+   porque el clip-path recorta la caja entera: una sombra exterior
+   de box-shadow quedaria cortada y no se veria. drop-shadow, en
+   cambio, se calcula sobre la silueta YA recortada y sigue las
+   esquinas en diagonal. */
+
+/* --- equipo bueno: azul/cian de X (spr_hud_player) --- */
+[data-skin="megaman"] .catalog-column-bueno .catalog-item,
+[data-skin="megaman"] .slider .item-bueno {
+  background: linear-gradient(180deg, var(--mm-x-claro) 0%, var(--mm-x-medio) 55%, var(--mm-x-oscuro) 100%);
+  filter: drop-shadow(0 0 3px rgba(80, 208, 240, 0.55));
+}
+
+/* --- equipo malo: morado del HUD de jefe (spr_hud_boss) --- */
+[data-skin="megaman"] .catalog-column-malo .catalog-item,
+[data-skin="megaman"] .slider .item-malo {
+  background: linear-gradient(180deg, var(--mm-boss-claro) 0%, var(--mm-boss-medio) 55%, var(--mm-boss-oscuro) 100%);
+  filter: drop-shadow(0 0 3px rgba(224, 144, 224, 0.55));
+}
+
+/* --- textos --- */
+
+/* Press Start 2P es mucho mas ancha que Arial a igual tamaño, asi
+   que se compensa el px que calcula updateLabelSize() en script.js
+   (si no, casi toda etiqueta quedaria cortada con "..."). */
+[data-skin="megaman"] .catalog-action-label {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.58);
+  /* Mismo motivo que en .catalog-count-badge: a px enteros la
+     fuente de pixel se ve nitida, a px fraccionarios borrosa. */
+  font-size: round(down, calc(var(--catalog-label-size, 14px) * 0.58), 1px);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--mm-blanco);
+
+  /* Press Start 2P ocupa mas alto que Arial al mismo tamaño y no
+     trae casi margen propio: con el line-height 1.1 del CSS de
+     arriba la etiqueta queda pegada al borde de la tarjeta y a la
+     imagen de la accion. El padding deja sitio ademas para la
+     sombra dura de 1px, que cae fuera de la caja de texto. */
+  line-height: 1.8;
+  padding-bottom: 4px;
+  /* Sombra dura de 1px en vez de difuminada: el juego no tiene
+     sombras suaves en ninguna parte. */
+  text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+}
+
+/* "x50" / "15s": caja negra con marco, como los contadores del HUD.
+
+   Mucho mas chico que en el overlay sin skin (0.85 contra 2.2):
+   Press Start 2P ya ocupa de por si bastante mas que Arial al mismo
+   font-size, y ademas aqui el badge no deberia tapar el sprite. */
+[data-skin="megaman"] .catalog-count-badge {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.85 * var(--catalog-badge-scale, 1));
+
+  /* Segunda declaracion, solo para navegadores con round(): fija el
+     tamaño a un numero ENTERO de px. Press Start 2P es una fuente
+     de pixel y en tamaños fraccionarios (5.6px, 9.3px...) el
+     navegador la interpola y se ve borrosa, que es justo el efecto
+     de "fuera de foco". Si el navegador no entiende round(),
+     descarta esta linea y se queda con la de arriba. */
+  font-size: round(down, calc(var(--catalog-label-size, 14px) * 0.85 * var(--catalog-badge-scale, 1)), 1px);
+
+  color: var(--mm-x-claro);
+  background: #000;
+  border-radius: 0;
+  padding: 3px 5px;
+  box-shadow: 0 0 0 1px var(--mm-blanco);
+  text-shadow: none;
+}
+
+[data-skin="megaman"] .catalog-column-malo .catalog-count-badge {
+  color: var(--mm-boss-claro);
+}
+
+[data-skin="megaman"] .catalog-like-count,
+[data-skin="megaman"] .likes-box .cantidad {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.95);
+  color: var(--mm-blanco);
+  text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+}
+
+/* --- imagenes --- */
+
+/* Los regalos de TikTok son PNG grandes y suaves; el resto del
+   overlay es pixel art. Sin esto conviven mal. */
+[data-skin="megaman"] .catalog-gift-badge,
+[data-skin="megaman"] .slider img,
+[data-skin="megaman"] .likes-box img {
+  image-rendering: pixelated;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.9));
+}
+
+[data-skin="megaman"] .catalog-main-img {
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.9));
+}
+
+/* --- animacion de rotacion --- */
+
+/* El fundido con escala se ve moderno y desentona. El juego cambia
+   las cosas de golpe, asi que la entrada es un parpadeo corto. */
+[data-skin="megaman"] .catalog-item {
+  transition: opacity 0.12s steps(2, end);
+  transform: none;
+}
+
+[data-skin="megaman"] .catalog-item-entering,
+[data-skin="megaman"] .catalog-item-leaving {
+  opacity: 0;
+  transform: none;
+}
+
+/* Titulo de cada equipo con el skin: barra oscura con marco, al
+   estilo de los rotulos del juego. El color lo pone el equipo. */
+[data-skin="megaman"] .catalog-title {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.8);
+  font-size: round(down, calc(var(--catalog-label-size, 14px) * 0.8), 1px);
+  line-height: 1.6;
+  padding: 4px 6px;
+  background: var(--mm-bg);
+  text-shadow: 1px 1px 0 #000;
+
+  /* Mismo chaflan que las tarjetas, para que la franja entera se
+     lea como una sola pieza. */
+  clip-path: polygon(
+    0 var(--mm-chaflan),
+    var(--mm-chaflan) 0,
+    calc(100% - var(--mm-chaflan)) 0,
+    100% var(--mm-chaflan),
+    100% calc(100% - var(--mm-chaflan)),
+    calc(100% - var(--mm-chaflan)) 100%,
+    var(--mm-chaflan) 100%,
+    0 calc(100% - var(--mm-chaflan))
+  );
+}
+
+[data-skin="megaman"] .catalog-title-bueno {
+  color: var(--mm-x-claro);
+  box-shadow: inset 0 -2px 0 var(--mm-x-medio);
+}
+
+[data-skin="megaman"] .catalog-title-malo {
+  color: var(--mm-boss-claro);
+  box-shadow: inset 0 -2px 0 var(--mm-boss-medio);
+}
