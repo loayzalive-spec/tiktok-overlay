@@ -196,8 +196,13 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             gridEl: document.getElementById(gridId),
             columns: 0,
             rows: 0,
-            slots: [],
             all: [],
+            // Las reglas ya repartidas en paginas, teniendo en cuenta
+            // cuantas celdas ocupa cada una (ver paginar()).
+            pages: [],
+            // Claves de lo que hay dibujado ahora mismo, para no
+            // rehacer la cuadricula en cada sondeo de /api/rules.
+            painted: '',
             // Pagina que se esta mostrando. Cada equipo lleva la
             // suya: los buenos y los malos pasan de pagina por su
             // cuenta, porque casi nunca tienen el mismo numero de
@@ -205,7 +210,10 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             page: 0,
         };
 
-        new ResizeObserver(() => updateLabelSize(team)).observe(team.gridEl);
+        new ResizeObserver(() => {
+            updateLabelSize(team);
+            layoutTeam(team);
+        }).observe(team.gridEl);
 
         return team;
     }
@@ -241,11 +249,31 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         return String(n);
     }
 
+    // rule.gifts (2026-09-20): varios regalos DISTINTOS disparando la
+    // MISMA regla. Cuando está, reemplaza a giftName por completo (no
+    // se combinan). Devuelve los nombres en el orden en que se
+    // eligieron en el panel.
+    function giftNamesOf(rule) {
+        if (Array.isArray(rule.gifts) && rule.gifts.length > 0) {
+            return rule.gifts
+                .map((g) => String(g && g.name || '').trim())
+                .filter(Boolean);
+        }
+
+        return rule.giftName ? [String(rule.giftName).trim()] : [];
+    }
+
     function ruleKey(rule) {
         // Las reglas "like" no tienen giftName; el threshold hace de
         // identificador unico en su lugar (dos reglas "like" con el
         // mismo threshold serian ambiguas de por si, en la cola real).
-        const id = rule.giftName || `like:${rule.threshold || ''}`;
+        //
+        // Una tarjeta de anuncio puede no tener ninguno de los dos: se
+        // identifica por su texto, que es lo unico que tiene.
+        const id = giftNamesOf(rule).join('+')
+            || (rule.threshold ? `like:${rule.threshold}` : '')
+            || `aviso:${rule.overlayText || ''}`;
+
         return `${id}|${rule.actionName || rule.action || ''}`;
     }
 
@@ -254,15 +282,38 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         const malo = [];
 
         rules.forEach((rule) => {
-            // Dos tipos de regla muestran algo en el catalogo:
+            // Regla apagada desde el panel: existe en el archivo pero
+            // no esta en juego, asi que tampoco se anuncia aqui. El
+            // campo puede no venir (reglas de siempre): ausente = si.
+            if (rule.enabled === false) {
+                return;
+            }
+
+            // overlayHidden: sigue disparando en el juego con
+            // normalidad (regalo o likes), pero el streamer no quiere
+            // que el chat la vea venir en la cuadrícula. Espejo de
+            // overlayOnly (esa sale en el overlay y no hace nada en
+            // el juego; esta hace algo en el juego y no sale acá).
+            if (rule.overlayHidden === true) {
+                return;
+            }
+
+            // Tres tipos de regla muestran algo en el catalogo:
             //   - "gift": dispara con un regalo puntual de TikTok.
             //   - "like": dispara cada N likes acumulados (threshold).
+            //   - overlayOnly: tarjeta de anuncio. No hace nada en el
+            //     juego, asi que puede no tener regalo ni umbral: le
+            //     basta con su imagen y su texto. Si SI tiene regalo
+            //     (algo que el streamer cumple a mano), se dibuja como
+            //     cualquier otra.
             // El resto (por ejemplo reglas "like" sin threshold, mal
             // configuradas) no tiene nada que mostrar.
-            const isGiftRule = rule.event === 'gift' && rule.giftName;
+            const giftNames = giftNamesOf(rule);
+            const isGiftRule = rule.event === 'gift' && giftNames.length > 0;
             const isLikeRule = rule.event === 'like' && rule.threshold;
+            const isAviso = rule.overlayOnly === true;
 
-            if (!isGiftRule && !isLikeRule) {
+            if (!isGiftRule && !isLikeRule && !isAviso) {
                 return;
             }
 
@@ -279,13 +330,48 @@ async function iniciarModoCatalog(initialCatalogConfig) {
                 badge = `${duration}s`;
             }
 
+            // Cuantas celdas de ancho y de alto ocupa la tarjeta.
+            // Sirve para las acciones que necesitan que se lea un
+            // texto largo, o simplemente para destacarlas. Por
+            // defecto 1x1, o sea como ha sido siempre.
+            //
+            // El tope se aplica al dibujar, no aqui: depende de las
+            // columnas del equipo, que las pone config.json y pueden
+            // cambiar en caliente.
+            const span = Math.max(1, Math.floor(Number(rule.overlaySpan) || 1));
+            const rowSpan = Math.max(1, Math.floor(Number(rule.overlayRowSpan) || 1));
+
+            // Retoque del tamaño del texto de ESTA tarjeta. 1 = el
+            // recomendado (el que calcula el overlay segun la celda);
+            // 1.5 = medio mas grande. Es un multiplicador y no un
+            // numero de pixeles a proposito: asi sigue escalando solo
+            // cuando cambia el tamaño de la fuente en OBS.
+            const textBoost = Math.min(3, Math.max(0.4, Number(rule.overlayTextScale) || 1));
+
             const entry = {
                 key: ruleKey(rule),
+                span,
+                rowSpan,
+                textBoost,
+                // Texto de la tarjeta. Por defecto el nombre de la
+                // accion, pero una regla puede poner el suyo con
+                // "overlayText": mas corto, mas gracioso, o
+                // simplemente el que entra en el ancho que tiene.
+                label: String(rule.overlayText ?? rule.actionName ?? rule.action ?? ''),
                 // Las reglas "like" no tienen un regalo real: se usa el
                 // icono generico de like y el numero de likes como
                 // "nombre de regalo" para el alt/etiqueta.
-                giftName: isLikeRule ? 'Like' : rule.giftName,
-                giftLabel: isLikeRule ? `${rule.threshold} likes` : rule.giftName,
+                // Una tarjeta de anuncio puede no tener regalo: ahi
+                // giftName queda vacio y no se dibuja la esquina.
+                //
+                // Con varios regalos (rule.gifts), el PRIMERO es el que
+                // se usa como icono de la esquina (giftName singular:
+                // no tiene sentido mostrar N imagenes ahi) y el join
+                // con " / " de TODOS es lo que ve buildItem() para la
+                // linea de texto aparte (ver "giftNames" mas abajo).
+                giftName: isLikeRule ? 'Like' : (giftNames[0] || ''),
+                giftLabel: isLikeRule ? `${rule.threshold} likes` : giftNames.join(' / '),
+                giftNames,
                 actionName: rule.actionName || rule.action || '',
                 actionImage: rule.overlayImage || '',
                 badge,
@@ -338,20 +424,83 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         team.wrapEl.style.flexGrow = String(columns);
 
         team.gridEl.replaceChildren();
-        team.slots = [];
+        team.painted = '';
         // Cambiar columns/rows cambia cuantas celdas hay y por tanto
         // como se reparten las paginas: la pagina que se veia ya no
         // significa lo mismo, asi que se vuelve a la primera.
         team.page = 0;
 
-        for (let i = 0; i < columns * rows; i++) {
-            const el = document.createElement('div');
-            el.className = 'catalog-slot';
-            team.gridEl.appendChild(el);
-            team.slots.push({ el, entry: null });
+        updateLabelSize(team);
+    }
+
+    // ------------------------------------------------------------
+    // BADGE PEGADO A LA IMAGEN
+    // ------------------------------------------------------------
+    //
+    // Las imagenes se dibujan con object-fit: contain dentro de una
+    // caja que ocupa toda la celda, asi que casi nunca la llenan: un
+    // sprite ancho y bajo deja franjas vacias arriba y abajo. El
+    // badge ("x5", "15s") estaba anclado a la CAJA, por eso se veia
+    // siempre arriba del todo y despegado del dibujo.
+    //
+    // containedRect() rehace la cuenta que hace contain y devuelve el
+    // rectangulo que de verdad ocupa la imagen; el badge se ancla a
+    // ESE rectangulo. Asi no hace falta que todos los PNG midan lo
+    // mismo: cada uno lleva su badge pegado a su propia esquina.
+    // ------------------------------------------------------------
+
+    function containedRect(img, box) {
+        const boxW = box.clientWidth;
+        const boxH = box.clientHeight;
+        const natW = img.naturalWidth;
+        const natH = img.naturalHeight;
+
+        // Imagen todavia sin cargar (o rota) / caja sin medir aun.
+        if (!boxW || !boxH || !natW || !natH) {
+            return null;
         }
 
-        updateLabelSize(team);
+        const scale = Math.min(boxW / natW, boxH / natH);
+        const width = natW * scale;
+        const height = natH * scale;
+
+        return { width, height, left: (boxW - width) / 2, top: (boxH - height) / 2 };
+    }
+
+    function layoutItem(item) {
+        const mainWrap = item.querySelector('.catalog-main-wrap');
+        const main = item.querySelector('.catalog-main-img');
+        const badge = item.querySelector('.catalog-count-badge');
+
+        if (badge && main && mainWrap) {
+            const rect = containedRect(main, mainWrap);
+
+            if (rect) {
+                badge.style.top = `${rect.top}px`;
+                badge.style.right = `${rect.left}px`;
+            }
+        }
+
+        // Mismo problema con el numero de likes: iba centrado en la
+        // caja, no en el corazon.
+        const giftWrap = item.querySelector('.catalog-gift-wrap');
+        const gift = item.querySelector('.catalog-gift-badge');
+        const likeCount = item.querySelector('.catalog-like-count');
+
+        if (likeCount && gift && giftWrap) {
+            const rect = containedRect(gift, giftWrap);
+
+            if (rect) {
+                likeCount.style.top = `${rect.top + (rect.height / 2)}px`;
+                likeCount.style.left = `${rect.left + (rect.width / 2)}px`;
+            }
+        }
+    }
+
+    // Al cambiar el tamaño de la fuente de OBS (o las columnas/filas)
+    // cambia la celda y con ella el rectangulo de cada imagen.
+    function layoutTeam(team) {
+        team.gridEl.querySelectorAll('.catalog-item').forEach(layoutItem);
     }
 
     // Sin imagen (nombre provisional o png que todavia no existe) se
@@ -362,9 +511,25 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         }, { once: true });
     }
 
-    function buildItem(entry) {
+    function buildItem(entry, ancho) {
         const item = document.createElement('div');
         item.className = 'catalog-item catalog-item-entering';
+
+        // Una tarjeta que ocupa mas de una columna se reparte distinto:
+        // imagen a la izquierda y texto grande a la derecha. El ancho
+        // que llega es el YA recortado a las columnas del equipo, no el
+        // que pidio la regla: si no entro, tampoco cambia el reparto.
+        if (ancho > 1) {
+            item.classList.add('catalog-item-wide');
+        }
+
+        // El CSS multiplica por esta variable todos los tamaños de
+        // texto de la tarjeta. Solo se pone cuando la regla la cambia,
+        // asi el valor por defecto del var() sigue siendo el que
+        // manda en todo lo demas.
+        if (entry.textBoost !== 1) {
+            item.style.setProperty('--catalog-text-boost', String(entry.textBoost));
+        }
 
         // encodeURIComponent: hay regalos con espacios y apostrofes
         // ("Guardian's Pledge").
@@ -388,6 +553,9 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         main.src = entry.actionImage || giftSrc;
         main.alt = entry.actionImage ? entry.actionName : entry.giftLabel;
         hideOnError(main);
+        // Hasta que no carga no se sabe su proporcion, y sin eso no
+        // se puede pegar el badge a la imagen.
+        main.addEventListener('load', () => layoutItem(item));
         mainWrap.appendChild(main);
 
         // "x2", "x50"... para spawns con mas de 1, o "12s", "20s"...
@@ -401,7 +569,11 @@ async function iniciarModoCatalog(initialCatalogConfig) {
 
         visual.appendChild(mainWrap);
 
-        if (entry.actionImage) {
+        // entry.giftName tambien: una tarjeta de anuncio puede no
+        // tener regalo, y sin esto se colaria un <img> a
+        // "images/regalos/.png" que solo se esconde al fallar (deja su
+        // hueco en la fila y descoloca la imagen principal).
+        if (entry.actionImage && entry.giftName) {
             const giftWrap = document.createElement('div');
             giftWrap.className = 'catalog-gift-wrap';
 
@@ -410,6 +582,7 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             gift.src = giftSrc;
             gift.alt = entry.giftLabel;
             hideOnError(gift);
+            gift.addEventListener('load', () => layoutItem(item));
             giftWrap.appendChild(gift);
 
             // "50", "300", "1k"... centrado sobre el corazon. Solo en
@@ -429,37 +602,33 @@ async function iniciarModoCatalog(initialCatalogConfig) {
 
         const label = document.createElement('span');
         label.className = 'catalog-action-label';
-        label.textContent = entry.actionName;
+        // entry.label, no entry.actionName: una regla puede poner su
+        // propio texto con "overlayText" (mas corto, o el que entra en
+        // el ancho que tiene la tarjeta).
+        label.textContent = entry.label;
 
         item.append(visual, label);
 
+        // Varios regalos para la misma accion (2026-09-20): sus
+        // nombres, separados por "/", en una segunda linea chica
+        // debajo del nombre de la accion. Con un solo regalo (el
+        // 99% de las reglas de siempre) esto no se dibuja nada -
+        // cero cambio visual para las tarjetas de toda la vida.
+        //
+        // Solo en tarjetas normales (ancho == 1): las anchas
+        // (overlaySpan, "CADENAS"/"TERREMOTO") reparten imagen y
+        // texto en FILA, no en columna, y meter una linea mas ahi
+        // pedía repensar ese layout aparte. Sin casos de uso todavía
+        // (un combo de varios regalos para un efecto con tarjeta
+        // ancha), así que se dejó afuera a propósito.
+        if (entry.giftNames.length > 1 && ancho <= 1) {
+            const giftNames = document.createElement('span');
+            giftNames.className = 'catalog-gift-names';
+            giftNames.textContent = entry.giftNames.join(' / ');
+            item.appendChild(giftNames);
+        }
+
         return item;
-    }
-
-    function setSlot(slot, entry) {
-        const old = slot.el.querySelector('.catalog-item:not(.catalog-item-leaving)');
-
-        if (old) {
-            const remove = () => old.remove();
-            old.classList.add('catalog-item-leaving');
-            old.addEventListener('transitionend', remove, { once: true });
-            // Red de seguridad por si transitionend no llega a disparar.
-            setTimeout(remove, 700);
-        }
-
-        slot.entry = entry;
-
-        if (!entry) {
-            return;
-        }
-
-        const item = buildItem(entry);
-        slot.el.appendChild(item);
-
-        // Forzar reflow antes de quitar la clase de entrada, si no el
-        // navegador salta directo al estado final sin animar.
-        void item.offsetWidth;
-        requestAnimationFrame(() => item.classList.remove('catalog-item-entering'));
     }
 
     // ------------------------------------------------------------
@@ -470,75 +639,209 @@ async function iniciarModoCatalog(initialCatalogConfig) {
     // reglas y cada rotateIntervalMs cambia el grupo ENTERO por el
     // siguiente. No se va sustituyendo celda por celda.
     //
-    // Las reglas se reparten PAREJO entre las paginas en vez de
-    // llenar cada una hasta el tope. Con 12 reglas y 10 celdas, la
-    // division normal daria una pagina de 10 y otra de 2, y esa
-    // segunda se veria casi vacia la mitad del tiempo; repartiendo
-    // salen dos paginas de 6. El numero de paginas es el mismo en
-    // los dos casos, solo cambia lo llena que va cada una.
+    // Cada pagina se llena HASTA EL TOPE con la cuadricula que diga
+    // config.json (columns x rows). La ultima puede quedar con una o
+    // dos tarjetas y huecos al lado: es a proposito, la cuadricula
+    // es la que define el usuario y se respeta tal cual. (Antes se
+    // repartian parejo entre paginas para evitar esos huecos, y el
+    // resultado era que casi nunca se veia la franja completa.)
+    //
+    // Antes cada regla ocupaba exactamente una celda, asi que repartir
+    // era dividir. Ahora una regla puede pedir mas de una celda de
+    // ancho o de alto ("overlaySpan" / "overlayRowSpan"), asi que hay
+    // que ir COLOCANDOLAS: se recorre la cuadricula de arriba a abajo
+    // y de izquierda a derecha buscando el primer hueco donde entre, y
+    // cuando ya no entra se empieza otra pagina.
+    //
+    // El orden de las reglas se respeta, no se reordena para tapar
+    // huecos: el catalogo tiene que leerse igual que la lista del
+    // panel.
     // ------------------------------------------------------------
 
-    function pageCount(team) {
-        if (!team.slots.length || !team.all.length) {
-            return 1;
-        }
+    function paginar(team) {
+        const cols = team.columns;
+        const rows = team.rows;
 
-        return Math.ceil(team.all.length / team.slots.length);
-    }
+        team.pages = [];
 
-    // Cuantas reglas van en cada pagina una vez repartidas parejo.
-    // Nunca pasa del numero de celdas: si hacen falta N paginas para
-    // que quepan todas, repartirlas entre esas N nunca da mas de lo
-    // que cabe en una.
-    function perPage(team) {
-        return Math.ceil(team.all.length / pageCount(team));
-    }
-
-    function renderPage(team) {
-        if (!team.slots.length) {
+        if (!cols || !rows) {
             return;
         }
 
-        const total = pageCount(team);
+        let ocupado = null;
+        let pagina = null;
+
+        function nuevaPagina() {
+            ocupado = Array.from({ length: rows }, () => new Array(cols).fill(false));
+            pagina = [];
+            team.pages.push(pagina);
+        }
+
+        function cabe(fila, col, ancho, alto) {
+            if (fila + alto > rows || col + ancho > cols) {
+                return false;
+            }
+
+            for (let y = fila; y < fila + alto; y++) {
+                for (let x = col; x < col + ancho; x++) {
+                    if (ocupado[y][x]) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        function colocar(entry, fila, col, ancho, alto) {
+            for (let y = fila; y < fila + alto; y++) {
+                for (let x = col; x < col + ancho; x++) {
+                    ocupado[y][x] = true;
+                }
+            }
+
+            pagina.push({ entry, fila, col, ancho, alto });
+        }
+
+        nuevaPagina();
+
+        team.all.forEach((entry) => {
+            // Una tarjeta nunca puede pedir mas de lo que hay: si la
+            // cuadricula tiene 2 columnas y la regla pide 3, se queda
+            // en 2. Asi un config.json mas chico no la hace desaparecer.
+            const ancho = Math.min(entry.span, cols);
+            const alto = Math.min(entry.rowSpan, rows);
+
+            // Dos vueltas: en esta pagina y, si no entra, en una nueva.
+            // Una tercera no hace falta porque ancho <= cols y
+            // alto <= rows, o sea que en una pagina vacia SIEMPRE entra.
+            for (let vuelta = 0; vuelta < 2; vuelta++) {
+                for (let fila = 0; fila < rows; fila++) {
+                    for (let col = 0; col < cols; col++) {
+                        if (cabe(fila, col, ancho, alto)) {
+                            colocar(entry, fila, col, ancho, alto);
+                            return;
+                        }
+                    }
+                }
+
+                nuevaPagina();
+            }
+        });
+    }
+
+    function renderPage(team) {
+        if (!team.columns || !team.rows) {
+            return;
+        }
 
         // Si se borraron reglas y ahora hay menos paginas, la pagina
         // actual puede haberse quedado fuera de rango.
-        if (team.page >= total) {
+        if (team.page >= team.pages.length) {
             team.page = 0;
         }
 
-        const size = perPage(team);
-        const start = team.page * size;
+        const pagina = team.pages[team.page] || [];
 
-        team.slots.forEach((slot, index) => {
-            const entry = index < size ? (team.all[start + index] || null) : null;
+        // Huella de lo que habria que dibujar. Sin esto, el sondeo de
+        // /api/rules (cada pollRulesIntervalMs) volveria a montar las
+        // tarjetas cada pocos segundos y la animacion de entrada se
+        // reiniciaria sola.
+        const huella = pagina
+            .map((p) => `${p.entry.key}@${p.fila},${p.col}:${p.ancho}x${p.alto}t${p.entry.textBoost}`)
+            .join('|');
 
-            // Solo se toca la celda que de verdad cambia. Sin esto,
-            // el sondeo de /api/rules (cada pollRulesIntervalMs)
-            // volveria a montar las tarjetas cada pocos segundos y
-            // la animacion de entrada se reiniciaria sola.
-            const actual = slot.entry ? slot.entry.key : null;
-            const nueva = entry ? entry.key : null;
+        if (huella === team.painted) {
+            return;
+        }
 
-            if (actual !== nueva) {
-                setSlot(slot, entry);
-            }
+        team.painted = huella;
+        team.gridEl.replaceChildren();
+
+        pagina.forEach((puesto) => {
+            // El envoltorio es el que se coloca en la cuadricula; la
+            // tarjeta va dentro y sigue siendo position:absolute sobre
+            // el, que es como estaba armado el CSS.
+            const slot = document.createElement('div');
+            slot.className = 'catalog-slot';
+            slot.style.gridColumn = `${puesto.col + 1} / span ${puesto.ancho}`;
+            slot.style.gridRow = `${puesto.fila + 1} / span ${puesto.alto}`;
+
+            const item = buildItem(puesto.entry, puesto.ancho);
+            slot.appendChild(item);
+            team.gridEl.appendChild(slot);
+
+            // Imagen ya en cache: el evento "load" no vuelve a dispararse.
+            layoutItem(item);
+
+            // Forzar reflow antes de quitar la clase de entrada, si no
+            // el navegador salta directo al estado final sin animar.
+            void item.offsetWidth;
+            requestAnimationFrame(() => item.classList.remove('catalog-item-entering'));
         });
     }
 
     function syncTeam(team, entries) {
         team.all = entries;
+        paginar(team);
         renderPage(team);
     }
 
     function nextPage(team) {
         // Todo cabe en una pagina: no hay a donde pasar.
-        if (pageCount(team) <= 1) {
+        if (team.pages.length <= 1) {
             return;
         }
 
-        team.page = (team.page + 1) % pageCount(team);
+        team.page = (team.page + 1) % team.pages.length;
         renderPage(team);
+    }
+
+    // ------------------------------------------------------------
+    // DE DONDE SALEN LAS REGLAS
+    // ------------------------------------------------------------
+    //
+    // Primero se prueba el MISMO ORIGEN que esta pagina, y solo si eso
+    // falla se cae al apiBase de config.json (el panel en el 3000).
+    //
+    // El orden importa: si la pagina la sirve la app (que es lo
+    // normal ahora), el mismo origen funciona siempre, incluso a
+    // traves de un tunel de Cloudflare. Con apiBase a 127.0.0.1 el
+    // navegador de quien abra la URL publica buscaria el 3000 en SU
+    // maquina y el overlay saldria vacio.
+    //
+    // El respaldo es para cuando la pagina la sirve otra cosa (el
+    // run-overlay.bat de toda la vida, o un servidor de pruebas).
+    let origenReglas = null;
+
+    async function pedirReglas() {
+        const candidatos = origenReglas !== null
+            ? [origenReglas]
+            : ['', catalogConfig.apiBase || 'http://127.0.0.1:3000'];
+
+        let ultimoError = null;
+
+        for (const base of candidatos) {
+            try {
+                const res = await fetch(`${base}/api/rules`, { cache: 'no-store' });
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+
+                // Se recuerda el que funciono para no reintentar el
+                // otro en cada sondeo.
+                origenReglas = base;
+
+                return data;
+            } catch (err) {
+                ultimoError = err;
+            }
+        }
+
+        throw ultimoError;
     }
 
     async function refresh() {
@@ -585,9 +888,7 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         applyTitle(teams.malo, catalogConfig.malo);
 
         try {
-            const apiBase = catalogConfig.apiBase || 'http://127.0.0.1:3000';
-            const res = await fetch(`${apiBase}/api/rules`, { cache: 'no-store' });
-            const data = await res.json();
+            const data = await pedirReglas();
             const { bueno, malo } = buildEntries(data.rules || []);
 
             syncTeam(teams.bueno, bueno);

@@ -1,0 +1,162 @@
+/* ============================================================
+   OVERLAY DE ORDENES Y CASTIGOS (juegos de consola)
+   ============================================================
+
+   Dos clases de tarjeta:
+
+     .ord-restriccion   algo que NO puedes hacer, con cuenta atras
+                        y barra. Roja.
+     .ord-orden         algo que tienes que hacer YA. Ambar, sin
+                        barra: no hay nada que cronometrar.
+
+   Todo se mide en em sobre --ord-size, que script.js calcula a
+   partir del alto REAL de la ventana de OBS. Asi la misma pagina
+   se ve bien de fuente chica en una esquina o a pantalla completa.
+   ============================================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: transparent;
+  overflow: hidden;
+  height: 100vh;
+
+  /* Suavizado en gris y no por subpixeles: encima de un juego, los
+     flecos rojos y azules de los bordes de las letras se notan. */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.ord-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  padding: 0.4em;
+  font-size: var(--ord-size, 28px);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-weight: 800;
+}
+
+[data-fuente="pixel"] .ord-panel {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  /* Press Start 2P es de pixel: a tamaños fraccionarios el navegador
+     la interpola y salen flecos. A px enteros queda limpia. */
+  font-size: round(down, var(--ord-size, 28px), 1px);
+}
+
+/* Abajo en vez de arriba: se pone en config.json. */
+[data-abajo="1"] .ord-panel {
+  justify-content: flex-end;
+  height: 100vh;
+}
+
+/* ------------------------------------------------------------
+   TARJETA
+   ------------------------------------------------------------ */
+
+.ord-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.35em 0.6em;
+  border-radius: 0.35em;
+  border: 0.1em solid var(--color);
+  background: rgba(8, 10, 18, var(--ord-fondo, 0.82));
+  color: #fff;
+  overflow: hidden;
+
+  /* Entra deslizando: en un directo, un cartel que aparece de golpe
+     se confunde con un fallo de OBS. */
+  animation: ord-entra 0.25s ease-out;
+}
+
+@keyframes ord-entra {
+  from { opacity: 0; transform: translateX(-0.6em); }
+  to   { opacity: 1; transform: none; }
+}
+
+.ord-restriccion { --color: #ff3b57; }
+.ord-orden       { --color: #ffc94a; }
+
+/* La franja del color a la izquierda, como en el panel del juego. */
+.ord-item::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0.18em;
+  background: var(--color);
+}
+
+.ord-img {
+  width: 1.6em;
+  height: 1.6em;
+  object-fit: contain;
+  flex: none;
+  image-rendering: pixelated;
+}
+
+.ord-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  min-width: 0;
+  flex: 1;
+}
+
+.ord-label {
+  font-size: 1em;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0.08em 0 #000, 0 0 0.3em rgba(0, 0, 0, 0.9);
+  overflow-wrap: anywhere;
+}
+
+.ord-quien {
+  font-size: 0.5em;
+  font-weight: 600;
+  color: var(--color);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0.06em 0 #000;
+}
+
+/* ------------------------------------------------------------
+   CUENTA ATRAS
+   ------------------------------------------------------------ */
+
+.ord-segundos {
+  flex: none;
+  font-size: 1.5em;
+  line-height: 1;
+  color: var(--color);
+  text-shadow: 0 0.06em 0 #000, 0 0 0.25em rgba(0, 0, 0, 0.9);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Los ultimos segundos parpadean, igual que el panel de efectos del
+   juego: es la señal de "aguanta un poco mas". */
+.ord-item.ord-poco { animation: ord-parpadeo 0.5s steps(2, end) infinite; }
+
+@keyframes ord-parpadeo {
+  50% { opacity: 0.55; }
+}
+
+/* Barra pegada al borde de abajo de la tarjeta. */
+.ord-barra {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 0.12em;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ord-barra i {
+  display: block;
+  height: 100%;
+  background: var(--color);
+  /* El ancho lo escribe script.js cada frame: sin transicion, o la
+     barra iria por detras de la cuenta atras. */
+}

@@ -151,7 +151,8 @@ body {
   color: white;
   font-family: Arial, sans-serif;
   font-weight: 900;
-  font-size: calc(var(--catalog-label-size, 14px) * 1.25);
+  /* x2.5 y no x1.25: el usuario pidio el titulo al doble. */
+  font-size: calc(var(--catalog-label-size, 14px) * 2.5);
   line-height: 1.25;
   text-align: center;
   text-transform: uppercase;
@@ -279,11 +280,15 @@ body {
    config.json sin la clave "badge" se ve igual que antes. */
 .catalog-count-badge {
   position: absolute;
+  /* top/right los pisa layoutItem() en script.js con la esquina
+     REAL del dibujo (la imagen va con object-fit: contain, asi que
+     casi nunca llena su caja). Estos valores son el respaldo para
+     el instante anterior a que la imagen cargue. */
   top: 0;
   right: 0;
   transform: translate(
-    calc(-4% + var(--catalog-badge-x, 0px)),
-    calc(4% + var(--catalog-badge-y, 0px))
+    var(--catalog-badge-x, 0px),
+    var(--catalog-badge-y, 0px)
   );
   padding: 3px 7px;
   border-radius: 6px;
@@ -340,13 +345,75 @@ body {
   color: white;
   font-family: Arial, sans-serif;
   font-weight: 900;
-  font-size: var(--catalog-label-size, 14px);
+  font-size: calc(var(--catalog-label-size, 14px) * var(--catalog-text-boost, 1));
   line-height: 1.1;
   text-align: center;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Varios regalos para una misma accion (rule.gifts): sus nombres
+   separados por "/", chico y debajo del nombre de la accion. Solo
+   existe cuando hay 2+ regalos (buildItem en script.js) — con uno
+   solo no se agrega este nodo, así que las tarjetas de siempre
+   quedan pixel iguales. */
+.catalog-gift-names {
+  flex: 0 0 auto;
+  max-width: 100%;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.62 * var(--catalog-text-boost, 1));
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   TARJETA ANCHA  (regla con "overlaySpan" mayor que 1)
+   ============================================================
+   Una tarjeta que ocupa varias columnas no se reparte como las
+   normales: en vez de imagen arriba y nombre chico abajo, va la
+   IMAGEN A LA IZQUIERDA y el TEXTO GRANDE A LA DERECHA, que es
+   para lo que se pide el espacio extra ("CADENAS", "TERREMOTO").
+
+   Solo cambia el reparto; los colores, el borde y las animaciones
+   son los mismos, asi que sigue leyendose como parte del catalogo.
+   ============================================================ */
+.catalog-item-wide {
+  flex-direction: row;
+  gap: 4%;
+  padding: 4px 8px;
+}
+
+/* La imagen se queda con poco mas de un tercio: el resto es para el
+   texto, que es el motivo de la tarjeta ancha. */
+.catalog-item-wide .catalog-visual {
+  flex: 0 1 38%;
+  min-width: 0;
+  height: 100%;
+}
+
+.catalog-item-wide .catalog-action-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* Bien grande: es la unica razon de ser de la tarjeta ancha. El
+     factor sale del tamaño que ya calcula script.js para la celda,
+     asi sigue escalando con la fuente de OBS. */
+  font-size: calc(var(--catalog-label-size, 14px) * 2.4 * var(--catalog-text-boost, 1));
+  line-height: 1.05;
+  text-align: left;
+  /* A diferencia de la tarjeta normal, aqui el texto PUEDE partirse
+     en dos lineas en vez de cortarse con puntos suspensivos: para eso
+     se le dio el ancho. */
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: clip;
 }
 
 /* ============================================================
@@ -492,10 +559,10 @@ body {
 [data-skin="megaman"] .catalog-action-label {
   font-family: 'Press Start 2P', 'Courier New', monospace;
   font-weight: 400;
-  font-size: calc(var(--catalog-label-size, 14px) * 0.58);
+  font-size: calc(var(--catalog-label-size, 14px) * 0.58 * var(--catalog-text-boost, 1));
   /* Mismo motivo que en .catalog-count-badge: a px enteros la
      fuente de pixel se ve nitida, a px fraccionarios borrosa. */
-  font-size: round(down, calc(var(--catalog-label-size, 14px) * 0.58), 1px);
+  font-size: round(down, calc(var(--catalog-label-size, 14px) * 0.58 * var(--catalog-text-boost, 1)), 1px);
   letter-spacing: 0;
   text-transform: uppercase;
   color: var(--mm-blanco);
@@ -510,6 +577,35 @@ body {
   /* Sombra dura de 1px en vez de difuminada: el juego no tiene
      sombras suaves en ninguna parte. */
   text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+}
+
+/* Varios regalos (rule.gifts) con esta skin: mismo tratamiento de
+   pixel art que .catalog-action-label (fuente, mayusculas, redondeo
+   a px entero, sombra dura de 1px), pero mas chico y mas apagado
+   para no competir con el nombre de la accion. */
+[data-skin="megaman"] .catalog-gift-names {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.58 * 0.62 * var(--catalog-text-boost, 1));
+  font-size: round(down, calc(var(--catalog-label-size, 14px) * 0.58 * 0.62 * var(--catalog-text-boost, 1)), 1px);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: rgba(240, 240, 240, 0.75);
+  text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+}
+
+/* La tarjeta ancha con esta skin.
+   Va DESPUES del bloque de arriba porque tiene la misma
+   especificidad (un atributo + una clase contra dos clases) y en ese
+   empate gana el ultimo: la regla generica de .catalog-item-wide se
+   quedaba sin efecto y el texto salia del tamaño normal. */
+[data-skin="megaman"] .catalog-item-wide .catalog-action-label {
+  /* 1.5 y no 0.58: es casi el triple que una etiqueta normal, que es
+     lo que se pide al dar una tarjeta ancha. Sigue en px enteros para
+     que la fuente de pixel no se vea borrosa. */
+  font-size: round(down, calc(var(--catalog-label-size, 14px) * 1.5 * var(--catalog-text-boost, 1)), 1px);
+  line-height: 1.35;
+  padding-bottom: 0;
 }
 
 /* "x50" / "15s": caja negra con marco, como los contadores del HUD.
@@ -586,8 +682,9 @@ body {
 [data-skin="megaman"] .catalog-title {
   font-family: 'Press Start 2P', 'Courier New', monospace;
   font-weight: 400;
-  font-size: calc(var(--catalog-label-size, 14px) * 0.8);
-  font-size: round(down, calc(var(--catalog-label-size, 14px) * 0.8), 1px);
+  /* x1.6 y no x0.8: el doble, que es lo que se pidio. */
+  font-size: calc(var(--catalog-label-size, 14px) * 1.6);
+  font-size: round(down, calc(var(--catalog-label-size, 14px) * 1.6), 1px);
   line-height: 1.6;
   padding: 4px 6px;
   background: var(--mm-bg);

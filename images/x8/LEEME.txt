@@ -1,0 +1,12 @@
+Imagenes de las acciones de Mega Man X8 16-bit.
+
+Misma convencion que images/megaman:
+
+  - Acciones: el nombre que dice data/games/x8.json en "defaultImage"
+    (heal.png, godmode.png, speed_boost.png...).
+
+  - Enemigos: el nombre del archivo .tscn, p. ej.
+    res://src/Actors/Enemies/Metool/Metool.tscn -> Metool.png
+
+Mientras falte un PNG el enemigo o la accion igual funcionan: solo
+salen sin imagen en el overlay y en el selector del panel.

@@ -1,0 +1,25 @@
+{
+  "_comentario": "Ajustes de los DOS overlays del top (5600 monedas, 5700 likes). Se relee en cada sondeo, asi que se puede tocar en pleno directo sin refrescar la fuente de OBS.",
+
+  "cuantos": 5,
+  "sondeoMs": 3000,
+
+  "_avatares": "false = solo medalla, nombre y numero.",
+  "avatares": true,
+
+  "_titulos": "Se ven solo si mostrarTitulo es true. Las imagenes de referencia no llevan.",
+  "mostrarTitulo": false,
+  "titulos": {
+    "monedas": "TOP DONADORES",
+    "likes": "TOP LIKES"
+  },
+
+  "_fuente": "pixel = Press Start 2P (como el overlay del catalogo). normal = la del sistema, mas legible con nombres largos.",
+  "fuente": "pixel",
+
+  "_fondo": "Panel de atras. 0 = sin fondo, solo las filas flotando sobre lo que haya en OBS.",
+  "fondoAlpha": 0.75,
+
+  "_escala": "Multiplica el tamano de TODO. 1 = el que se calcula segun el alto de la fuente de OBS.",
+  "escala": 1
+}

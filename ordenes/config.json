@@ -1,0 +1,14 @@
+{
+  "nota": "Se relee en cada sondeo, asi que se puede ajustar sin refrescar la fuente de OBS.",
+
+  "maximo": 4,
+  "sondeoMs": 400,
+
+  "fuente": "pixel",
+  "escala": 1,
+  "fondoAlpha": 0.82,
+  "abajo": false,
+
+  "mostrarUsuario": true,
+  "mostrarImagen": true
+}

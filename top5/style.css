@@ -1,0 +1,244 @@
+/* ============================================================
+   OVERLAY DEL TOP (monedas o likes)
+   ============================================================
+   Lista vertical: medalla, foto con aro del color del metal,
+   nombre en blanco con borde negro y debajo el numero con su
+   icono.
+
+   Todo se mide en em sobre --top-size, que script.js calcula a
+   partir del alto REAL de la fuente de OBS, asi el overlay se ve
+   igual con la fuente chica o a pantalla completa.
+   ============================================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: transparent;
+  overflow: hidden;
+  height: 100vh;
+
+  /* Suavizado en GRIS, no por subpíxeles.
+     Por defecto el navegador usa el truco de los subpíxeles RGB del
+     monitor para afinar el texto, y eso deja flecos rojos y azules
+     en los bordes de las letras: encima de un juego, y con una
+     fuente de pixel, se nota bastante. Esto lo desactiva. */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* La fuente la elige config.json ("fuente": "pixel" | "normal").
+   Press Start 2P es mucho mas ancha, asi que con nombres largos la
+   normal entra bastante mejor. */
+[data-fuente="pixel"] .top-panel {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+/* Press Start 2P es una fuente de pixel: a tamaños fraccionarios el
+   navegador la interpola y aparecen flecos de color en los bordes
+   (se ve clarísimo ampliando una captura). A px enteros queda nítida.
+   Mismo truco que usa el overlay del catálogo.
+
+   Van DESPUÉS de las reglas de tamaño de más abajo no, sino antes,
+   por eso llevan la clase de la fuente: eso les da más
+   especificidad y ganan igual. */
+[data-fuente="pixel"] .top-titulo {
+  font-size: round(down, calc(var(--top-size) * 0.85), 1px);
+}
+
+[data-fuente="pixel"] .top-numero {
+  font-size: round(down, calc(var(--top-size) * 0.9), 1px);
+}
+
+[data-fuente="pixel"] .top-nombre {
+  font-size: round(down, calc(var(--top-size) * 0.72), 1px);
+}
+
+[data-fuente="pixel"] .top-valor {
+  font-size: round(down, calc(var(--top-size) * 0.68), 1px);
+}
+
+[data-fuente="normal"] .top-panel {
+  font-family: system-ui, 'Segoe UI', Arial, sans-serif;
+  font-weight: 800;
+}
+
+.top-panel {
+  /* script.js las pisa; estos son el respaldo del primer frame. */
+  --top-size: 16px;
+  --top-fondo-alpha: 0.75;
+
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--top-size) * 0.35);
+
+  font-size: var(--top-size);
+
+  background: rgba(26, 26, 30, var(--top-fondo-alpha));
+  border-radius: 0.7em;
+  padding: calc(var(--top-size) * 0.45);
+}
+
+.top-titulo {
+  flex: 0 0 auto;
+  font-size: 0.85em;
+  font-weight: inherit;
+  text-align: center;
+  line-height: 1.4;
+  color: #fff;
+  /* Borde negro duro de 1px por los cuatro lados, no una sombra
+     difuminada: es lo que pidio el usuario y es lo que se lee sobre
+     cualquier fondo de juego. */
+  -webkit-text-stroke: 0.06em #000;
+  paint-order: stroke fill;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-titulo[hidden] {
+  display: none;
+}
+
+.top-lista {
+  flex: 1 1 0;
+  min-height: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+/* ------------------------------------------------------------
+   UNA FILA
+   ------------------------------------------------------------
+   medalla | foto | (nombre encima, numero debajo)
+   ------------------------------------------------------------ */
+
+.top-fila {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45em;
+  min-width: 0;
+  padding: 0.1em 0.2em;
+}
+
+/* --- medalla y numero --- */
+
+.top-medalla {
+  flex: 0 0 auto;
+  width: 1.5em;
+  height: 1.73em;
+  /* overflow visible para que las cintas de abajo no se corten. */
+  overflow: visible;
+}
+
+/* Del cuarto para abajo no hay medalla, solo el numero. Ocupa el
+   mismo ancho que la medalla para que las fotos queden alineadas
+   en columna. */
+.top-numero {
+  flex: 0 0 auto;
+  width: 1.5em;
+  text-align: center;
+  font-size: 0.9em;
+  color: #fff;
+  -webkit-text-stroke: 0.05em #000;
+  paint-order: stroke fill;
+}
+
+/* --- foto con aro --- */
+
+.top-foto {
+  position: relative;
+  flex: 0 0 auto;
+  width: 2.1em;
+  height: 2.1em;
+  border-radius: 50%;
+  /* El aro del color del metal (oro, plata, bronce; gris del 4 para
+     abajo). Lo pone script.js en la variable --aro. */
+  border: 0.13em solid var(--aro, #7a8290);
+  background: #3a3f46;
+  /* Hace falta para que la foto se recorte en circulo, pero la
+     corona NO puede quedar dentro: por eso va con overflow visible
+     y el recorte lo hace la propia <img>. */
+  overflow: visible;
+  box-shadow: 0 0 0 0.06em #000;
+}
+
+.top-foto img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+/* La corona del primero, montada sobre el borde de arriba de la
+   foto y un poco ladeada, como en las capturas. */
+.top-corona {
+  position: absolute;
+  width: 1.5em;
+  height: 0.97em;
+  left: 50%;
+  top: -0.62em;
+  transform: translateX(-50%);
+  overflow: visible;
+  /* Encima de la foto pase lo que pase. */
+  z-index: 2;
+}
+
+/* --- nombre y numero --- */
+
+.top-datos {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.12em;
+}
+
+.top-nombre {
+  font-size: 0.72em;
+  line-height: 1.2;
+  color: #fff;
+  -webkit-text-stroke: 0.055em #000;
+  paint-order: stroke fill;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-valor {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: 0.68em;
+  line-height: 1.2;
+  color: #fff;
+  -webkit-text-stroke: 0.055em #000;
+  paint-order: stroke fill;
+}
+
+.top-icono {
+  flex: 0 0 auto;
+  width: 0.95em;
+  height: 0.95em;
+}
+
+.top-vacio {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7em;
+  color: rgba(255, 255, 255, 0.45);
+  -webkit-text-stroke: 0.05em #000;
+  paint-order: stroke fill;
+}

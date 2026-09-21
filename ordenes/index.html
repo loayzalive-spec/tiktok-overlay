@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ordenes y castigos</title>
+
+  <!--
+    Overlay de los juegos de CONSOLA (transporte "voz").
+
+    La app no puede tocar una Nintendo Switch, asi que lo que hace es
+    decirle al streamer lo que tiene que hacer. Esta pagina es la
+    parte visible de eso: el cartel con lo que le toca y, en los
+    castigos, cuanto le queda.
+
+    Sirve para dos cosas a la vez:
+      - el chat ve lo que compro y puede vigilar que se cumpla
+      - el streamer ve de reojo cuanto falta sin apartar la vista
+
+    Lo sirve la propia app en http://127.0.0.1:5800 (una fuente
+    "Navegador" de OBS y nada mas). Con ?test pinta ordenes de
+    mentira para colocarla sin esperar a que llegue gente.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="ord-panel" id="panel"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
