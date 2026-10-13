@@ -1,0 +1,189 @@
+/* ============================================================
+   SKIN "sotn"  (config.json -> "skin": "sotn", o "auto" con el
+   perfil de Symphony of the Night activo)
+   ============================================================
+   Mismo esquema que el skin "megaman" de style.css: todo va bajo
+   [data-skin="sotn"], asi que sin ese atributo no engancha nada.
+
+   Idea: las ventanas del menu de Castlevania: Symphony of the Night.
+   Degradado azul muy oscuro, marco fino plateado con una segunda
+   linea por dentro, texto serif claro y titulos en oro.
+
+     bueno -> plata azulada (las ventanas del menu de Alucard)
+     malo  -> carmesi (sangre, el castillo de Dracula)
+
+   Fuente: Cinzel (Google Fonts, se carga en index.html). Si OBS no
+   tiene internet cae a Georgia / serif.
+   ============================================================ */
+
+[data-skin="sotn"] {
+  --sn-azul-alto: #1a2a78;
+  --sn-azul-bajo: #03061c;
+  --sn-pergamino: #f4ebd0;
+  --sn-negro: #000000;
+
+  --sn-plata-claro: #f2f5ff;
+  --sn-plata-medio: #9fb2e0;
+  --sn-plata-oscuro: #3a4c8a;
+
+  --sn-sangre-claro: #ffb3bf;
+  --sn-sangre-medio: #c0203a;
+  --sn-sangre-oscuro: #4a0010;
+
+  --sn-oro-claro: #fff1b8;
+  --sn-oro-medio: #d4a437;
+  --sn-oro-oscuro: #7a4e0e;
+
+  --sn-radio: 3px;
+  --sn-marco: 2px;
+
+  --sn-fuente: 'Cinzel', Georgia, 'Times New Roman', serif;
+}
+
+[data-skin="sotn"] .catalog-item {
+  background: var(--sn-plata-medio);
+  border: none;
+  border-radius: var(--sn-radio);
+  backdrop-filter: none;
+  isolation: isolate;
+}
+
+/* Interior de la ventana: degradado azul de arriba a abajo y una
+   segunda linea fina por dentro del marco, como el menu del juego. */
+[data-skin="sotn"] .catalog-item::before {
+  content: '';
+  position: absolute;
+  inset: var(--sn-marco);
+  z-index: -1;
+  border-radius: 1px;
+  background: linear-gradient(180deg, var(--sn-azul-alto) 0%, #0a1244 45%, var(--sn-azul-bajo) 100%);
+  box-shadow:
+    inset 0 0 0 2px var(--sn-negro),
+    inset 0 0 0 3px rgba(159, 178, 224, 0.45),
+    inset 0 0 18px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+[data-skin="sotn"] .catalog-item.catalog-item-bueno {
+  background: linear-gradient(180deg, var(--sn-plata-claro) 0%, var(--sn-plata-medio) 50%, var(--sn-plata-oscuro) 100%);
+  box-shadow: none;
+  filter: drop-shadow(0 0 4px rgba(159, 178, 224, 0.45));
+}
+
+[data-skin="sotn"] .catalog-item.catalog-item-malo {
+  background: linear-gradient(180deg, var(--sn-sangre-claro) 0%, var(--sn-sangre-medio) 50%, var(--sn-sangre-oscuro) 100%);
+  box-shadow: none;
+  filter: drop-shadow(0 0 5px rgba(192, 32, 58, 0.55));
+}
+
+/* Los malos, ademas, con el interior tenido de rojo oscuro. */
+[data-skin="sotn"] .catalog-item.catalog-item-malo::before {
+  background: linear-gradient(180deg, #3a0a24 0%, #1a0412 50%, #070006 100%);
+  box-shadow:
+    inset 0 0 0 2px var(--sn-negro),
+    inset 0 0 0 3px rgba(255, 179, 191, 0.35),
+    inset 0 0 18px rgba(0, 0, 0, 0.65);
+}
+
+/* --- textos --- */
+
+[data-skin="sotn"] .catalog-action-label {
+  font-family: var(--sn-fuente);
+  font-weight: 700;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.95 * var(--catalog-text-boost, 1));
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sn-pergamino);
+  line-height: 1.3;
+  padding-bottom: 2px;
+  text-shadow: 1px 1px 0 var(--sn-negro), 0 0 4px rgba(0, 0, 0, 0.9);
+}
+
+[data-skin="sotn"] .catalog-gift-names {
+  font-family: var(--sn-fuente);
+  font-weight: 700;
+  color: rgba(244, 235, 208, 0.7);
+  text-shadow: 1px 1px 0 var(--sn-negro);
+}
+
+[data-skin="sotn"] .catalog-item-wide .catalog-action-label {
+  font-size: calc(var(--catalog-label-size, 14px) * 2.2 * var(--catalog-text-boost, 1));
+  line-height: 1.15;
+  padding-bottom: 0;
+}
+
+[data-skin="sotn"] .catalog-chat-command {
+  font-family: var(--sn-fuente);
+  font-weight: 700;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.96 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1));
+  text-transform: none;
+  color: var(--sn-oro-medio);
+  text-shadow: 1px 1px 0 var(--sn-negro);
+}
+
+[data-skin="sotn"] .catalog-item-wide .catalog-chat-command {
+  font-size: calc(var(--catalog-label-size, 14px) * 2.2 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1));
+}
+
+/* "x5" / "15s": placa negra con filo de oro. */
+[data-skin="sotn"] .catalog-count-badge {
+  font-family: var(--sn-fuente);
+  font-weight: 700;
+  font-size: calc(var(--catalog-label-size, 14px) * 1.1 * var(--catalog-badge-scale, 1) * var(--catalog-badge-scale-regla, 1));
+  color: var(--sn-oro-claro);
+  background: linear-gradient(180deg, #1b1b2a 0%, #000000 100%);
+  border-radius: 2px;
+  padding: 2px 6px;
+  box-shadow: 0 0 0 1px var(--sn-oro-medio), 0 0 0 2px var(--sn-negro);
+  text-shadow: 1px 1px 0 var(--sn-negro);
+}
+
+[data-skin="sotn"] .catalog-item-malo .catalog-count-badge {
+  color: var(--sn-sangre-claro);
+}
+
+[data-skin="sotn"] .catalog-like-count {
+  font-family: var(--sn-fuente);
+  font-weight: 700;
+  color: var(--sn-pergamino);
+  text-shadow: 1px 1px 0 var(--sn-negro), 0 0 4px var(--sn-negro);
+}
+
+[data-skin="sotn"] .catalog-main-img,
+[data-skin="sotn"] .catalog-gift-badge {
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.95));
+}
+
+/* --- animacion: aparece despacio, como un fundido del castillo --- */
+
+[data-skin="sotn"] .catalog-item {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+[data-skin="sotn"] .catalog-item-entering,
+[data-skin="sotn"] .catalog-item-leaving {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* --- titulos: oro sobre la franja oscura --- */
+
+[data-skin="sotn"] .catalog-title {
+  font-family: var(--sn-fuente);
+  font-weight: 900;
+  font-size: calc(var(--catalog-label-size, 14px) * 2.2);
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  color: transparent;
+  background: linear-gradient(180deg, var(--sn-oro-claro) 0%, var(--sn-oro-medio) 55%, var(--sn-oro-oscuro) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(1px 1px 0 var(--sn-negro)) drop-shadow(0 0 3px rgba(0, 0, 0, 0.9));
+}
+
+[data-skin="sotn"] .catalog-title-malo {
+  background: linear-gradient(180deg, var(--sn-sangre-claro) 0%, var(--sn-sangre-medio) 55%, var(--sn-sangre-oscuro) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}

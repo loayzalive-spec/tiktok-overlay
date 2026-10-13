@@ -5,16 +5,21 @@
   <title>Overlay Interacciones</title>
 
   <!--
-    Fuente de pixel para el skin "megaman" (config.json -> "skin").
-    Si OBS no tiene internet no pasa nada: el skin declara un
-    fallback monospace y solo se pierde la tipografia.
-    Los demas skins y el overlay sin skin no la usan.
+    Fuentes de los skins (config.json -> "skin"): Press Start 2P
+    (megaman), Luckiest Guy (mario64), Titan One (crash) y Cinzel
+    (sotn). Si OBS no tiene internet no pasa nada: cada skin declara
+    un fallback y solo se pierde la tipografia.
   -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Luckiest+Guy&family=Titan+One&family=Cinzel:wght@700;900&display=swap">
 
   <link rel="stylesheet" href="style.css">
+
+  <!-- Cada skin solo engancha con su data-skin en el <html>. -->
+  <link rel="stylesheet" href="skins/mario64.css">
+  <link rel="stylesheet" href="skins/crash.css">
+  <link rel="stylesheet" href="skins/sotn.css">
 </head>
 <body>
   <div class="overlay-container">
@@ -42,6 +47,16 @@
     <div class="catalog-team" id="catalogTeamMalo">
       <div class="catalog-title catalog-title-malo" id="catalogTitleMalo" hidden></div>
       <div class="catalog-column catalog-column-malo" id="catalogMalo"></div>
+    </div>
+
+    <!--
+      catalogConfig.layout = "unico": un solo cuadro con buenos y
+      malos mezclados, distinguidos solo por el color del borde de
+      cada tarjeta. Con "equipos" (o sin el campo) queda oculto.
+    -->
+    <div class="catalog-team" id="catalogTeamUnico" hidden>
+      <div class="catalog-title catalog-title-unico" id="catalogTitleUnico" hidden></div>
+      <div class="catalog-column catalog-column-unico" id="catalogUnico"></div>
     </div>
   </div>
 

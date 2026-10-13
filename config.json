@@ -1,7 +1,6 @@
 {
   "mode": "catalog",
-  "skin": "megaman",
-
+  "skin": "auto",
   "sliderConfig": {
     "imageHeight": 100,
     "speedPxPerSec": 120,
@@ -16,6 +15,9 @@
     "pollRulesIntervalMs": 3000,
     "gap": 6,
     "badge": { "scale": 1, "offsetX": 0, "offsetY": 0 },
+    "padding": 4,
+    "layout": "unico",
+    "unico": { "columns": 4, "rows": 3, "title": "" },
     "bueno": { "columns": 2, "rows": 3, "title": "Team Bueno" },
     "malo": { "columns": 3, "rows": 3, "title": "Team Malo" }
   }

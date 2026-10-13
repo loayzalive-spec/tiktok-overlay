@@ -1,0 +1,210 @@
+/* ============================================================
+   SKIN "crash"  (config.json -> "skin": "crash", o "auto" con un
+   perfil de Crash activo)
+   ============================================================
+   Mismo esquema que el skin "megaman" de style.css: todo va bajo
+   [data-skin="crash"], asi que sin ese atributo no engancha nada.
+
+   Idea: las cajas del juego. Cada tarjeta es una caja:
+
+     bueno -> caja de madera normal (la que da frutas Wumpa)
+     malo  -> caja TNT (roja con las franjas amarillas)
+
+   El interior son tablones oscurecidos para que la imagen de la
+   accion se siga leyendo encima. Letra gorda naranja con contorno
+   marron, como el logo.
+
+   Fuente: Titan One (Google Fonts, se carga en index.html). Si OBS
+   no tiene internet cae a Arial Black.
+   ============================================================ */
+
+[data-skin="crash"] {
+  --cr-madera-claro: #f0b464;
+  --cr-madera-medio: #c47a33;
+  --cr-madera-oscuro: #7a4214;
+  --cr-tablon: #8a4f1f;
+  --cr-junta: #4a2708;
+
+  --cr-tnt-claro: #ff6a3d;
+  --cr-tnt-medio: #d7261a;
+  --cr-tnt-oscuro: #7c0c05;
+  --cr-tnt-franja: #ffd23a;
+
+  --cr-naranja: #ff9a1a;
+  --cr-amarillo: #ffe066;
+  --cr-marron: #3a1c04;
+
+  --cr-radio: 5px;
+  --cr-marco: 4px;
+
+  --cr-fuente: 'Titan One', 'Arial Black', Arial, sans-serif;
+
+  --cr-contorno-texto:
+    2px 0 0 var(--cr-marron), -2px 0 0 var(--cr-marron),
+    0 2px 0 var(--cr-marron), 0 -2px 0 var(--cr-marron),
+    2px 2px 0 var(--cr-marron), -2px 2px 0 var(--cr-marron),
+    2px -2px 0 var(--cr-marron), -2px -2px 0 var(--cr-marron);
+}
+
+/* El elemento pinta el canto de la caja; ::before, los tablones. */
+[data-skin="crash"] .catalog-item {
+  background: var(--cr-madera-medio);
+  border: none;
+  border-radius: var(--cr-radio);
+  backdrop-filter: none;
+  isolation: isolate;
+}
+
+[data-skin="crash"] .catalog-item::before {
+  content: '';
+  position: absolute;
+  inset: var(--cr-marco);
+  z-index: -1;
+  border-radius: 2px;
+  /* Tablones horizontales con su junta, y encima un velo oscuro para
+     que la imagen de la accion no se pierda en la madera. */
+  background-color: var(--cr-tablon);
+  background-image:
+    linear-gradient(180deg, rgba(20, 8, 0, 0.45), rgba(20, 8, 0, 0.62)),
+    repeating-linear-gradient(180deg, transparent 0 17px, var(--cr-junta) 17px 19px),
+    repeating-linear-gradient(90deg, rgba(255, 220, 160, 0.06) 0 2px, transparent 2px 9px);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* Caja de madera: canto claro arriba y oscuro abajo, como el
+   volumen de la caja del juego. */
+[data-skin="crash"] .catalog-item.catalog-item-bueno {
+  background: linear-gradient(180deg, var(--cr-madera-claro) 0%, var(--cr-madera-medio) 50%, var(--cr-madera-oscuro) 100%);
+  box-shadow: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+}
+
+/* Caja TNT: canto rojo con franjas amarillas en diagonal. */
+[data-skin="crash"] .catalog-item.catalog-item-malo {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 7px, rgba(255, 210, 58, 0.85) 7px 11px),
+    linear-gradient(180deg, var(--cr-tnt-claro) 0%, var(--cr-tnt-medio) 50%, var(--cr-tnt-oscuro) 100%);
+  box-shadow: none;
+  filter: drop-shadow(0 0 4px rgba(255, 80, 20, 0.6));
+}
+
+[data-skin="crash"] .catalog-item.catalog-item-malo::before {
+  background-color: #5a130a;
+  background-image:
+    linear-gradient(180deg, rgba(30, 0, 0, 0.35), rgba(30, 0, 0, 0.6)),
+    repeating-linear-gradient(180deg, transparent 0 17px, #2e0602 17px 19px);
+}
+
+/* --- textos --- */
+
+[data-skin="crash"] .catalog-action-label {
+  font-family: var(--cr-fuente);
+  font-weight: 400;
+  /* Titan One es muy ancha: a 0.85 las etiquetas largas ("Spawn 2x
+     Caparazon con pinchos") ya se cortaban con "...". */
+  font-size: calc(var(--catalog-label-size, 14px) * 0.74 * var(--catalog-text-boost, 1));
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--cr-amarillo);
+  line-height: 1.3;
+  padding-bottom: 2px;
+  text-shadow: var(--cr-contorno-texto);
+}
+
+[data-skin="crash"] .catalog-gift-names {
+  font-family: var(--cr-fuente);
+  font-weight: 400;
+  color: rgba(255, 236, 200, 0.85);
+  text-shadow: 1px 1px 0 var(--cr-marron), -1px -1px 0 var(--cr-marron);
+}
+
+[data-skin="crash"] .catalog-item-wide .catalog-action-label {
+  font-size: calc(var(--catalog-label-size, 14px) * 2.1 * var(--catalog-text-boost, 1));
+  line-height: 1.1;
+  padding-bottom: 0;
+}
+
+[data-skin="crash"] .catalog-chat-command {
+  font-family: var(--cr-fuente);
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.86 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1));
+  text-transform: none;
+  color: #ffffff;
+  text-shadow: 1px 1px 0 var(--cr-marron), -1px 1px 0 var(--cr-marron),
+    1px -1px 0 var(--cr-marron), -1px -1px 0 var(--cr-marron);
+}
+
+[data-skin="crash"] .catalog-item-wide .catalog-chat-command {
+  font-size: calc(var(--catalog-label-size, 14px) * 2.1 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1));
+}
+
+/* "x5" / "15s": una fruta Wumpa (naranja con brillo). */
+[data-skin="crash"] .catalog-count-badge {
+  font-family: var(--cr-fuente);
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 1.2 * var(--catalog-badge-scale, 1) * var(--catalog-badge-scale-regla, 1));
+  color: #ffffff;
+  background: radial-gradient(circle at 35% 30%, #ffd08a 0%, #ff8a00 45%, #c24700 100%);
+  border-radius: 999px;
+  padding: 2px 8px 1px;
+  box-shadow: 0 0 0 2px var(--cr-marron);
+  text-shadow: 1px 1px 0 var(--cr-marron), -1px 1px 0 var(--cr-marron),
+    1px -1px 0 var(--cr-marron), -1px -1px 0 var(--cr-marron);
+}
+
+[data-skin="crash"] .catalog-like-count {
+  font-family: var(--cr-fuente);
+  font-weight: 400;
+  color: #ffffff;
+  text-shadow: var(--cr-contorno-texto);
+}
+
+[data-skin="crash"] .catalog-main-img,
+[data-skin="crash"] .catalog-gift-badge {
+  filter: drop-shadow(0 2px 0 rgba(20, 8, 0, 0.85));
+}
+
+/* --- animacion: la caja cae y rebota --- */
+
+[data-skin="crash"] .catalog-item {
+  transition: opacity 0.2s ease, transform 0.5s cubic-bezier(0.34, 1.7, 0.6, 1);
+}
+
+[data-skin="crash"] .catalog-item-entering {
+  opacity: 0;
+  transform: translateY(-40%) rotate(-6deg) scale(0.8);
+}
+
+[data-skin="crash"] .catalog-item-leaving {
+  opacity: 0;
+  transform: scale(1.15) rotate(4deg);
+}
+
+/* --- titulos: como el logo, naranja inclinado con contorno --- */
+
+[data-skin="crash"] .catalog-title {
+  font-family: var(--cr-fuente);
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 2.2);
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+  padding-top: 2px;
+  color: transparent;
+  background: linear-gradient(180deg, var(--cr-amarillo) 0%, var(--cr-naranja) 60%, #e05a00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: none;
+  transform: skew(-8deg);
+  filter:
+    drop-shadow(2px 0 0 var(--cr-marron)) drop-shadow(-2px 0 0 var(--cr-marron))
+    drop-shadow(0 2px 0 var(--cr-marron)) drop-shadow(0 -2px 0 var(--cr-marron))
+    drop-shadow(0 3px 0 rgba(0, 0, 0, 0.5));
+}
+
+/* El de los malos, con el rojo de la TNT. */
+[data-skin="crash"] .catalog-title-malo {
+  background: linear-gradient(180deg, #ffb08a 0%, #ff4a1a 55%, #b01500 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}

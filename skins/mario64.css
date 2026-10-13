@@ -1,0 +1,190 @@
+/* ============================================================
+   SKIN "mario64"  (config.json -> "skin": "mario64", o "auto" con
+   el perfil de Super Mario 64 activo)
+   ============================================================
+   Mismo esquema que el skin "megaman" de style.css: todo va bajo
+   [data-skin="mario64"], asi que sin ese atributo no engancha nada.
+
+   Idea: los cuadros de dialogo y el menu de seleccion de partida de
+   SM64. Fondo azul noche con estrellitas, esquinas muy redondeadas,
+   letra de dibujos animados con contorno grueso, y el titulo con los
+   cuatro colores del logo (rojo, amarillo, verde, azul).
+
+     bueno -> dorado de la Power Star
+     malo  -> rojo de Mario / Bowser
+
+   Fuente: Luckiest Guy (Google Fonts, se carga en index.html). Si
+   OBS no tiene internet cae a Arial Black y solo se pierde la letra.
+   ============================================================ */
+
+[data-skin="mario64"] {
+  --m64-fondo-alto: #243494;
+  --m64-fondo-bajo: #0c1446;
+  --m64-blanco: #ffffff;
+  --m64-contorno: #1a0f3a;
+
+  --m64-estrella-claro: #fff27a;
+  --m64-estrella-medio: #ffcc00;
+  --m64-estrella-oscuro: #c88400;
+
+  --m64-rojo-claro: #ff7a7a;
+  --m64-rojo-medio: #e4000f;
+  --m64-rojo-oscuro: #8c0008;
+
+  --m64-radio: 14px;
+  --m64-marco: 3px;
+
+  --m64-fuente: 'Luckiest Guy', 'Arial Black', Arial, sans-serif;
+
+  /* Contorno de 2px en 8 direcciones: es lo que le da el aire de
+     texto de SM64 (letras gordas y bien recortadas). */
+  --m64-contorno-texto:
+    2px 0 0 var(--m64-contorno), -2px 0 0 var(--m64-contorno),
+    0 2px 0 var(--m64-contorno), 0 -2px 0 var(--m64-contorno),
+    2px 2px 0 var(--m64-contorno), -2px 2px 0 var(--m64-contorno),
+    2px -2px 0 var(--m64-contorno), -2px -2px 0 var(--m64-contorno);
+}
+
+/* Dos capas, como el skin megaman: el elemento pinta el MARCO (color
+   del equipo) y ::before el interior, metido --m64-marco px. */
+[data-skin="mario64"] .catalog-item {
+  background: var(--m64-blanco);
+  border: none;
+  border-radius: var(--m64-radio);
+  backdrop-filter: none;
+  isolation: isolate;
+}
+
+[data-skin="mario64"] .catalog-item::before {
+  content: '';
+  position: absolute;
+  inset: var(--m64-marco);
+  z-index: -1;
+  border-radius: calc(var(--m64-radio) - var(--m64-marco));
+  background-color: var(--m64-fondo-bajo);
+  /* Estrellitas: dos rejillas de puntos desfasadas sobre el
+     degradado de cielo. */
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.35) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 70% 75%, rgba(255, 242, 122, 0.30) 0 1px, transparent 1.5px),
+    linear-gradient(180deg, var(--m64-fondo-alto) 0%, var(--m64-fondo-bajo) 100%);
+  background-size: 23px 19px, 31px 27px, 100% 100%;
+  pointer-events: none;
+}
+
+/* Brillo con drop-shadow y no box-shadow, igual que megaman: sigue la
+   silueta redondeada. */
+[data-skin="mario64"] .catalog-item.catalog-item-bueno {
+  background: linear-gradient(180deg, var(--m64-estrella-claro) 0%, var(--m64-estrella-medio) 50%, var(--m64-estrella-oscuro) 100%);
+  box-shadow: none;
+  filter: drop-shadow(0 0 4px rgba(255, 204, 0, 0.6));
+}
+
+[data-skin="mario64"] .catalog-item.catalog-item-malo {
+  background: linear-gradient(180deg, var(--m64-rojo-claro) 0%, var(--m64-rojo-medio) 50%, var(--m64-rojo-oscuro) 100%);
+  box-shadow: none;
+  filter: drop-shadow(0 0 4px rgba(228, 0, 15, 0.55));
+}
+
+/* --- textos --- */
+
+[data-skin="mario64"] .catalog-action-label {
+  font-family: var(--m64-fuente);
+  font-weight: 400;
+  /* Luckiest Guy es mas ancha que Arial: se compensa un poco. */
+  font-size: calc(var(--catalog-label-size, 14px) * 0.88 * var(--catalog-text-boost, 1));
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--m64-blanco);
+  line-height: 1.3;
+  padding-bottom: 2px;
+  text-shadow: var(--m64-contorno-texto);
+}
+
+[data-skin="mario64"] .catalog-gift-names {
+  font-family: var(--m64-fuente);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 1px 1px 0 var(--m64-contorno), -1px -1px 0 var(--m64-contorno);
+}
+
+/* Misma especificidad que la regla de arriba: va despues para ganar
+   en la tarjeta ancha (mismo caso que en el skin megaman). */
+[data-skin="mario64"] .catalog-item-wide .catalog-action-label {
+  font-size: calc(var(--catalog-label-size, 14px) * 2.2 * var(--catalog-text-boost, 1));
+  line-height: 1.1;
+  padding-bottom: 0;
+}
+
+[data-skin="mario64"] .catalog-chat-command {
+  font-family: var(--m64-fuente);
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.88 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1));
+  text-transform: none;
+  color: var(--m64-estrella-claro);
+  text-shadow: 1px 1px 0 var(--m64-contorno), -1px 1px 0 var(--m64-contorno),
+    1px -1px 0 var(--m64-contorno), -1px -1px 0 var(--m64-contorno);
+}
+
+[data-skin="mario64"] .catalog-item-wide .catalog-chat-command {
+  font-size: calc(var(--catalog-label-size, 14px) * 2.2 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1));
+}
+
+/* "x5" / "15s": una moneda amarilla. */
+[data-skin="mario64"] .catalog-count-badge {
+  font-family: var(--m64-fuente);
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 1.2 * var(--catalog-badge-scale, 1) * var(--catalog-badge-scale-regla, 1));
+  color: #7a3e00;
+  background: radial-gradient(circle at 35% 30%, #fff6a0 0%, #ffd000 45%, #d99a00 100%);
+  border-radius: 999px;
+  padding: 2px 8px 0;
+  box-shadow: 0 0 0 2px #7a3e00;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+[data-skin="mario64"] .catalog-like-count {
+  font-family: var(--m64-fuente);
+  font-weight: 400;
+  color: var(--m64-blanco);
+  text-shadow: var(--m64-contorno-texto);
+}
+
+[data-skin="mario64"] .catalog-main-img,
+[data-skin="mario64"] .catalog-gift-badge {
+  filter: drop-shadow(0 2px 0 rgba(10, 5, 40, 0.8));
+}
+
+/* --- animacion: entra "rebotando", como los menus del juego --- */
+
+[data-skin="mario64"] .catalog-item {
+  transition: opacity 0.25s ease, transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-skin="mario64"] .catalog-item-entering,
+[data-skin="mario64"] .catalog-item-leaving {
+  opacity: 0;
+  transform: scale(0.6) translateY(10px);
+}
+
+/* --- titulos: los cuatro colores del logo de SM64 --- */
+
+[data-skin="mario64"] .catalog-title {
+  font-family: var(--m64-fuente);
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 2.3);
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  padding-top: 2px;
+  color: transparent;
+  background: linear-gradient(90deg, #e4000f 0%, #e4000f 25%, #ffcc00 25%, #ffcc00 50%,
+    #1fa83a 50%, #1fa83a 75%, #1e5bff 75%, #1e5bff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: none;
+  /* Contorno con filter (text-shadow no se ve bien con el texto
+     transparente del degradado). */
+  filter:
+    drop-shadow(2px 0 0 var(--m64-contorno)) drop-shadow(-2px 0 0 var(--m64-contorno))
+    drop-shadow(0 2px 0 var(--m64-contorno)) drop-shadow(0 -2px 0 var(--m64-contorno));
+}

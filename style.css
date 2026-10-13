@@ -169,6 +169,13 @@ body {
   display: none;
 }
 
+/* .catalog-team lleva display:flex, que le gana al [hidden] nativo:
+   sin esto el reparto que no se usa (equipos o cuadro unico) seguiria
+   ocupando su parte de la franja. */
+.catalog-team[hidden] {
+  display: none;
+}
+
 /* La cuadricula toma el alto que sobra despues del titulo. */
 .catalog-column {
   display: grid;
@@ -196,7 +203,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 4px;
+  /* catalogConfig.padding (global) o overlayPadding de la regla. */
+  padding: var(--catalog-padding, 4px);
   overflow: hidden;
   background: rgba(30, 30, 30, 0.65);
   border-radius: 8px;
@@ -208,12 +216,16 @@ body {
   transform: scale(1);
 }
 
-.catalog-column-bueno .catalog-item {
+/* El color va por la clase de la TARJETA (catalog-item-bueno/-malo,
+   la pone script.js) y no por la columna: en el cuadro unico
+   (catalogConfig.layout = "unico") buenos y malos comparten
+   cuadricula y lo unico que los distingue es este borde. */
+.catalog-item.catalog-item-bueno {
   border-color: #00ff41;
   box-shadow: 0 2px 10px rgba(0, 255, 65, 0.3), inset 0 0 8px rgba(0, 255, 65, 0.1);
 }
 
-.catalog-column-malo .catalog-item {
+.catalog-item.catalog-item-malo {
   border-color: #ff0033;
   box-shadow: 0 2px 10px rgba(255, 0, 51, 0.3), inset 0 0 8px rgba(255, 0, 51, 0.1);
 }
@@ -286,9 +298,11 @@ body {
      el instante anterior a que la imagen cargue. */
   top: 0;
   right: 0;
+  /* Global (catalogConfig.badge) + el retoque de la regla
+     (overlayBadgeOffsetX/Y), que se suma. */
   transform: translate(
-    var(--catalog-badge-x, 0px),
-    var(--catalog-badge-y, 0px)
+    calc(var(--catalog-badge-x, 0px) + var(--catalog-badge-x-regla, 0px)),
+    calc(var(--catalog-badge-y, 0px) + var(--catalog-badge-y-regla, 0px))
   );
   padding: 3px 7px;
   border-radius: 6px;
@@ -296,7 +310,7 @@ body {
   color: #fff;
   font-family: Arial, sans-serif;
   font-weight: 900;
-  font-size: calc(var(--catalog-label-size, 14px) * 2.2 * var(--catalog-badge-scale, 1));
+  font-size: calc(var(--catalog-label-size, 14px) * 2.2 * var(--catalog-badge-scale, 1) * var(--catalog-badge-scale-regla, 1));
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -311,6 +325,18 @@ body {
   flex: 0 1 38%;
   min-width: 0;
   height: 100%;
+}
+
+/* Varios regalos en la misma regla: uno encima de otro. */
+.catalog-gift-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.catalog-gift-cell {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .catalog-gift-badge {
@@ -391,12 +417,34 @@ body {
   padding: 4px 8px;
 }
 
-/* La imagen se queda con poco mas de un tercio: el resto es para el
-   texto, que es el motivo de la tarjeta ancha. */
+/* Tamaño minimo de la imagen (2026-10-02, pedido del usuario): antes
+   la franja de la imagen era un 38% FIJO del ancho, compartido con el
+   regalo, y la imagen se ajustaba a ese ANCHO. Las cuadradas o
+   apaisadas (cadenas, botones al azar, disparo cargado) salian
+   diminutas y el "10s" las tapaba. Ahora la imagen de la accion ocupa
+   TODO EL ALTO de la tarjeta y toma el ancho que pide su forma
+   (--catalog-img-ratio, lo pone script.js al cargar la imagen), con
+   un tope para no comerse el texto: catalogConfig.wideImageMax en
+   config.json (fraccion del ancho de la tarjeta, 0.40 por defecto). */
 .catalog-item-wide .catalog-visual {
-  flex: 0 1 38%;
+  flex: 0 1 auto;
+  max-width: var(--catalog-wide-img-max, 40%);
   min-width: 0;
   height: 100%;
+  gap: 3%;
+}
+
+.catalog-item-wide .catalog-main-wrap {
+  flex: 0 1 auto;
+  height: 100%;
+  aspect-ratio: var(--catalog-img-ratio, 1);
+}
+
+/* El regalo, cuadrado y algo mas bajo que la imagen: la acompaña. */
+.catalog-item-wide .catalog-gift-wrap {
+  flex: 0 0 auto;
+  height: 42%;
+  aspect-ratio: 1;
 }
 
 .catalog-item-wide .catalog-action-label {
@@ -414,6 +462,74 @@ body {
   white-space: normal;
   overflow: hidden;
   text-overflow: clip;
+}
+
+/* Comando de chat ("!lento") debajo del texto principal, a la MITAD
+   de su tamaño (pedido del usuario). Dorado, el color de los tokens.
+   Cada tamaño de abajo es exactamente 0.5x el de la etiqueta que le
+   corresponde (normal, ancha, y las dos del skin megaman). */
+.catalog-chat-command {
+  flex: 0 0 auto;
+  max-width: 100%;
+  color: #ffd24a;
+  font-family: Arial, sans-serif;
+  font-weight: 900;
+  font-size: calc(var(--catalog-label-size, 14px) * 1.0 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1));
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  /* Comando a la izquierda, coste + token a la derecha. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4em;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.catalog-chat-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El numero en plata, como el token. */
+.catalog-chat-cost {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  color: #e4e8ee;
+}
+
+.catalog-token-icon {
+  width: 1.1em;
+  height: 1.1em;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
+}
+
+/* Tarjeta ancha con comando: etiqueta y comando van juntos a la
+   derecha de la imagen, uno encima del otro. El bloque hereda el
+   flex que tenia la etiqueta sola. */
+.catalog-text-block {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.catalog-text-block .catalog-action-label {
+  flex: 0 1 auto;
+}
+
+.catalog-item-wide .catalog-chat-command {
+  font-size: calc(var(--catalog-label-size, 14px) * 2.4 * 1.0 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1));
+  text-align: left;
 }
 
 /* ============================================================
@@ -538,14 +654,14 @@ body {
    esquinas en diagonal. */
 
 /* --- equipo bueno: azul/cian de X (spr_hud_player) --- */
-[data-skin="megaman"] .catalog-column-bueno .catalog-item,
+[data-skin="megaman"] .catalog-item.catalog-item-bueno,
 [data-skin="megaman"] .slider .item-bueno {
   background: linear-gradient(180deg, var(--mm-x-claro) 0%, var(--mm-x-medio) 55%, var(--mm-x-oscuro) 100%);
   filter: drop-shadow(0 0 3px rgba(80, 208, 240, 0.55));
 }
 
 /* --- equipo malo: morado del HUD de jefe (spr_hud_boss) --- */
-[data-skin="megaman"] .catalog-column-malo .catalog-item,
+[data-skin="megaman"] .catalog-item.catalog-item-malo,
 [data-skin="megaman"] .slider .item-malo {
   background: linear-gradient(180deg, var(--mm-boss-claro) 0%, var(--mm-boss-medio) 55%, var(--mm-boss-oscuro) 100%);
   filter: drop-shadow(0 0 3px rgba(224, 144, 224, 0.55));
@@ -608,6 +724,28 @@ body {
   padding-bottom: 0;
 }
 
+/* Comando de chat con esta skin: mitad del tamaño de la etiqueta
+   (0.58 -> 0.29, y 1.5 -> 0.75 en la ancha), pixel art y dorado.
+   Con piso de 6px: por debajo Press Start 2P no se lee. Va despues
+   de la etiqueta ancha por el mismo empate de especificidad. */
+[data-skin="megaman"] .catalog-chat-command {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-weight: 400;
+  font-size: max(calc(12px * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1)), calc(var(--catalog-label-size, 14px) * 0.58 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1)));
+  font-size: max(calc(12px * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1)), round(down, calc(var(--catalog-label-size, 14px) * 0.58 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1)), 1px));
+  line-height: 1.6;
+  letter-spacing: 0;
+  /* Tal cual se escribio en el panel, sin pasarlo a mayusculas: es
+     lo que el espectador tiene que teclear. */
+  text-transform: none;
+  color: #f8d030;
+  text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+}
+
+[data-skin="megaman"] .catalog-item-wide .catalog-chat-command {
+  font-size: max(calc(12px * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1)), round(down, calc(var(--catalog-label-size, 14px) * 1.5 * var(--catalog-text-boost, 1) * var(--catalog-command-scale, 1) * var(--catalog-command-scale-regla, 1)), 1px));
+}
+
 /* "x50" / "15s": caja negra con marco, como los contadores del HUD.
 
    Mucho mas chico que en el overlay sin skin (0.85 contra 2.2):
@@ -616,7 +754,7 @@ body {
 [data-skin="megaman"] .catalog-count-badge {
   font-family: 'Press Start 2P', 'Courier New', monospace;
   font-weight: 400;
-  font-size: calc(var(--catalog-label-size, 14px) * 0.85 * var(--catalog-badge-scale, 1));
+  font-size: calc(var(--catalog-label-size, 14px) * 0.85 * var(--catalog-badge-scale, 1) * var(--catalog-badge-scale-regla, 1));
 
   /* Segunda declaracion, solo para navegadores con round(): fija el
      tamaño a un numero ENTERO de px. Press Start 2P es una fuente
@@ -624,7 +762,7 @@ body {
      navegador la interpola y se ve borrosa, que es justo el efecto
      de "fuera de foco". Si el navegador no entiende round(),
      descarta esta linea y se queda con la de arriba. */
-  font-size: round(down, calc(var(--catalog-label-size, 14px) * 0.85 * var(--catalog-badge-scale, 1)), 1px);
+  font-size: round(down, calc(var(--catalog-label-size, 14px) * 0.85 * var(--catalog-badge-scale, 1) * var(--catalog-badge-scale-regla, 1)), 1px);
 
   color: var(--mm-x-claro);
   background: #000;
@@ -634,7 +772,7 @@ body {
   text-shadow: none;
 }
 
-[data-skin="megaman"] .catalog-column-malo .catalog-count-badge {
+[data-skin="megaman"] .catalog-item-malo .catalog-count-badge {
   color: var(--mm-boss-claro);
 }
 

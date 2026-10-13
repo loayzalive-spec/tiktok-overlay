@@ -1,0 +1,208 @@
+/* ============================================================
+   OVERLAY DE TOKENS
+   ============================================================
+   Lista vertical: foto con aro dorado, nombre y el saldo de
+   tokens con su moneda.
+
+   No es un podio: no hay medallas ni corona. Es un SALDO, que
+   sube y baja, y el orden es solo para que el que mas tiene
+   quede arriba.
+
+   Todo se mide en em sobre --tk-size, que script.js calcula a
+   partir del alto REAL de la fuente de OBS, igual que el overlay
+   del top: asi se ve bien con la fuente chica o a pantalla
+   completa.
+   ============================================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: transparent;
+  overflow: hidden;
+  height: 100vh;
+
+  /* Suavizado en GRIS, no por subpixeles: encima de un juego, y
+     con fuente de pixel, los flecos rojos y azules de los bordes
+     se notan bastante. Mismo motivo que en el overlay del top. */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.tk-panel {
+  --tk-size: 18px;
+  --tk-oro: #ffc93c;
+
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--tk-size) * 0.15);
+  padding: calc(var(--tk-size) * 0.3) calc(var(--tk-size) * 0.4);
+  border-radius: calc(var(--tk-size) * 0.35);
+  background: rgba(10, 12, 18, var(--tk-fondo, 0.75));
+
+  /* El panel mide lo que mida su fila mas ancha, no la fuente de OBS
+     entera: asi el token queda pegado al nombre. Con la fuente
+     estrecha el tope es el ancho de la ventana y lo que cede es el
+     nombre (se trunca), nunca el token. */
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* display:flex le gana al display:none que el navegador le da solo
+   al atributo hidden, asi que hay que decirlo a mano. Sin esto,
+   esconder el panel cuando no hay nadie con tokens no funciona. */
+.tk-panel[hidden] {
+  display: none;
+}
+
+[data-fuente="pixel"] .tk-panel {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+}
+
+/* Press Start 2P es una fuente de pixel: a tamanos fraccionarios el
+   navegador la interpola y salen flecos de color en los bordes. A px
+   enteros queda nitida. Mismo truco que el overlay del top. */
+[data-fuente="pixel"] .tk-titulo {
+  font-size: round(down, calc(var(--tk-size) * 0.8), 1px);
+}
+
+[data-fuente="pixel"] .tk-precio {
+  font-size: round(down, calc(var(--tk-size) * 0.5), 1px);
+}
+
+[data-fuente="pixel"] .tk-nombre {
+  font-size: round(down, calc(var(--tk-size) * 0.72), 1px);
+}
+
+[data-fuente="pixel"] .tk-saldo {
+  font-size: round(down, calc(var(--tk-size) * 0.9), 1px);
+}
+
+/* ------------------------------------------------------------
+   TITULO
+   ------------------------------------------------------------ */
+
+.tk-titulo {
+  font-size: calc(var(--tk-size) * 0.8);
+  color: var(--tk-oro);
+  text-align: center;
+  letter-spacing: 0.05em;
+  -webkit-text-stroke: calc(var(--tk-size) * 0.05) #000;
+  paint-order: stroke fill;
+  margin-bottom: calc(var(--tk-size) * 0.1);
+}
+
+.tk-titulo[hidden] {
+  display: none;
+}
+
+.tk-precio {
+  display: block;
+  font-size: calc(var(--tk-size) * 0.5);
+  color: #cbd5e1;
+  letter-spacing: 0;
+  margin-top: calc(var(--tk-size) * 0.25);
+  -webkit-text-stroke: 0;
+}
+
+/* ------------------------------------------------------------
+   FILAS
+   ------------------------------------------------------------ */
+
+.tk-lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--tk-size) * 0.12);
+  min-width: 0;
+}
+
+.tk-fila {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--tk-size) * 0.3);
+  min-width: 0;
+  animation: tk-entra 0.35s ease-out;
+}
+
+@keyframes tk-entra {
+  from { opacity: 0; transform: translateX(-0.6em); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ------------------------------------------------------------
+   FOTO
+   ------------------------------------------------------------ */
+
+.tk-foto {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(var(--tk-size) * 1.1);
+  height: calc(var(--tk-size) * 1.1);
+  border-radius: 50%;
+  overflow: hidden;
+  background: #1b2130;
+  border: calc(var(--tk-size) * 0.08) solid var(--tk-oro);
+  box-shadow: 0 0 0 calc(var(--tk-size) * 0.05) #000;
+}
+
+.tk-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ------------------------------------------------------------
+   NOMBRE Y SALDO
+   ------------------------------------------------------------ */
+
+.tk-datos {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--tk-size) * 0.12);
+  min-width: 0;
+
+  /* Ocupa solo lo que mide el nombre (sin crecer para rellenar), y es
+     lo unico de la fila que se puede encoger. */
+  flex: 0 1 auto;
+}
+
+.tk-nombre {
+  font-size: calc(var(--tk-size) * 0.72);
+  color: #fff;
+  -webkit-text-stroke: calc(var(--tk-size) * 0.045) #000;
+  paint-order: stroke fill;
+
+  /* Un nombre larguisimo no debe empujar al numero fuera de la
+     fuente de OBS. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tk-saldo {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--tk-size) * 0.2);
+  font-size: calc(var(--tk-size) * 0.9);
+  color: var(--tk-oro);
+  -webkit-text-stroke: calc(var(--tk-size) * 0.045) #000;
+  paint-order: stroke fill;
+}
+
+.tk-icono {
+  width: calc(var(--tk-size) * 0.85);
+  height: calc(var(--tk-size) * 0.85);
+  flex: 0 0 auto;
+}
+
+/* El saldo va justo detras del nombre, sin hueco que lo empuje a la
+   derecha, y nunca se encoge: si falta sitio cede el nombre. */
+.tk-fila > .tk-saldo {
+  flex: 0 0 auto;
+}

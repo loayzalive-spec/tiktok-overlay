@@ -1,0 +1,38 @@
+{
+  "_comentario": "Ajustes del overlay de tokens (5900). Se relee en cada sondeo, asi que se puede tocar en pleno directo sin refrescar la fuente de OBS.",
+
+  "_cuantos": "Cuantos espectadores con saldo se piden como mucho al servidor (se reparten en paginas de a 'porPagina'). Los que no tienen tokens NO salen nunca, digas lo que digas aqui.",
+  "cuantos": 20,
+
+  "_porPagina": "Cuantas filas se ven a la vez. Si hay mas espectadores con saldo que esto, el overlay pagina solo cada 'rotarMs'.",
+  "porPagina": 5,
+
+  "_rotarMs": "Cada cuanto pasa a la siguiente pagina. Solo importa si hay mas de 'porPagina' espectadores con saldo.",
+  "rotarMs": 4000,
+
+  "sondeoMs": 2500,
+
+  "_maxLetras": "Corta el nombre a estos caracteres y le pone '…' si era mas largo. 0 = sin cortar.",
+  "maxLetras": 7,
+
+  "_avatares": "false = solo nombre y numero de tokens.",
+  "avatares": true,
+
+  "_titulo": "Se ve solo si mostrarTitulo es true.",
+  "mostrarTitulo": true,
+  "titulo": "TOKENS",
+  "_tituloTwitch": "El titulo del overlay de Twitch (5901), que usa estos mismos archivos.",
+  "tituloTwitch": "TOKENS TWITCH",
+
+  "_mostrarPrecio": "Anade debajo del titulo cuantos likes cuesta un token (lo dice la app, no se escribe aqui).",
+  "mostrarPrecio": true,
+
+  "_fuente": "pixel = Press Start 2P (como los demas overlays). normal = la del sistema, mas legible con nombres largos.",
+  "fuente": "pixel",
+
+  "_fondo": "Panel de atras. 0 = sin fondo, solo las filas flotando sobre lo que haya en OBS.",
+  "fondoAlpha": 0,
+
+  "_escala": "Multiplica el tamano de TODO. 1 = el que se calcula segun el alto de la fuente de OBS.",
+  "escala": 1
+}

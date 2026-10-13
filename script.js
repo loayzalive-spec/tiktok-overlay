@@ -176,6 +176,16 @@ function startAnimation() {
 // aplica sin refrescar la fuente de OBS.
 // ============================================================
 
+// Token de los comandos de chat: moneda PLATEADA con estrella. El
+// dorado ya es de las monedas de TikTok (overlay de donadores).
+// Mismo dibujo que el overlay de tokens (tokens/script.js).
+const TOKEN_SVG = `<svg class="catalog-token-icon" viewBox="0 0 24 24" aria-hidden="true">
+<circle cx="12" cy="12" r="9.4" fill="#e4e8ee" stroke="#000" stroke-width="1.7"/>
+<circle cx="12" cy="12" r="6.6" fill="#9ea7b3"/>
+<path d="M7.2 8.6 A6.2 6.2 0 0 1 15.4 6.6" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" opacity="0.8"/>
+<path d="M12 6.8 L13.5 10.4 L17.3 10.7 L14.4 13.2 L15.3 16.9 L12 14.9 L8.7 16.9 L9.6 13.2 L6.7 10.7 L10.5 10.4 Z" fill="#ffffff" stroke="#4d5560" stroke-width="0.7" stroke-linejoin="round"/>
+</svg>`;
+
 async function iniciarModoCatalog(initialCatalogConfig) {
     let catalogConfig = initialCatalogConfig;
 
@@ -184,7 +194,19 @@ async function iniciarModoCatalog(initialCatalogConfig) {
     const teams = {
         bueno: createTeam('catalogTeamBueno', 'catalogTitleBueno', 'catalogBueno'),
         malo: createTeam('catalogTeamMalo', 'catalogTitleMalo', 'catalogMalo'),
+        // catalogConfig.layout = "unico": una sola cuadricula con las
+        // reglas de los dos equipos, en el orden del panel. El equipo
+        // solo se nota en el color del borde de cada tarjeta.
+        unico: createTeam('catalogTeamUnico', 'catalogTitleUnico', 'catalogUnico'),
     };
+
+    // "equipos" (lo de siempre, y el valor si falta el campo) o
+    // "unico". Se relee en cada sondeo: se cambia sin refrescar OBS.
+    function readLayout() {
+        return String(catalogConfig.layout || '').trim().toLowerCase() === 'unico'
+            ? 'unico'
+            : 'equipos';
+    }
 
     function createTeam(wrapId, titleId, gridId) {
         const team = {
@@ -237,6 +259,23 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         };
     }
 
+    // Sin catalogConfig.unico en config.json, el cuadro unico ocupa lo
+    // mismo que los dos equipos juntos: sus columnas sumadas y el alto
+    // del mas alto. Asi cambiar solo "layout" ya se ve razonable.
+    function readUnicoDims() {
+        if (catalogConfig.unico) {
+            return readDims(catalogConfig.unico);
+        }
+
+        const bueno = readDims(catalogConfig.bueno);
+        const malo = readDims(catalogConfig.malo);
+
+        return {
+            columns: bueno.columns + malo.columns,
+            rows: Math.max(bueno.rows, malo.rows),
+        };
+    }
+
     // 1000 -> "1k", 1500 -> "1.5k", 500 -> "500". Solo entra en juego
     // desde 1000 (los umbrales de esta app hoy son 33/50/100/300/500,
     // que se leen bien tal cual).
@@ -272,6 +311,7 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         // identifica por su texto, que es lo unico que tiene.
         const id = giftNamesOf(rule).join('+')
             || (rule.threshold ? `like:${rule.threshold}` : '')
+            || (rule.event === 'follow' ? 'follow' : '')
             || `aviso:${rule.overlayText || ''}`;
 
         return `${id}|${rule.actionName || rule.action || ''}`;
@@ -280,6 +320,9 @@ async function iniciarModoCatalog(initialCatalogConfig) {
     function buildEntries(rules) {
         const bueno = [];
         const malo = [];
+        // Todas juntas y en el orden del rules.json, para el modo
+        // "unico": ahi no se separan, solo cambia el borde.
+        const todas = [];
 
         rules.forEach((rule) => {
             // Regla apagada desde el panel: existe en el archivo pero
@@ -311,9 +354,10 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             const giftNames = giftNamesOf(rule);
             const isGiftRule = rule.event === 'gift' && giftNames.length > 0;
             const isLikeRule = rule.event === 'like' && rule.threshold;
+            const isFollowRule = rule.event === 'follow';
             const isAviso = rule.overlayOnly === true;
 
-            if (!isGiftRule && !isLikeRule && !isAviso) {
+            if (!isGiftRule && !isLikeRule && !isFollowRule && !isAviso) {
                 return;
             }
 
@@ -324,7 +368,11 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             const duration = rule.duration;
             let badge = '';
 
-            if (count && count > 1) {
+            // overlayHideCount (panel: "Cantidad en la tarjeta" ->
+            // Ocultar): la accion no garantiza ese numero exacto (el
+            // spawn de Mega Man X en BizHawk clona lo que haya en
+            // pantalla), asi que no se promete un "x5" que no se cumple.
+            if (count && count > 1 && rule.overlayHideCount !== true) {
                 badge = `x${count}`;
             } else if (duration) {
                 badge = `${duration}s`;
@@ -348,16 +396,51 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             // cuando cambia el tamaño de la fuente en OBS.
             const textBoost = Math.min(3, Math.max(0.4, Number(rule.overlayTextScale) || 1));
 
+            // Retoques del numero "x2" / "12s" de ESTA tarjeta. Se SUMAN
+            // (desplazamiento) o MULTIPLICAN (escala) al global de
+            // config.json (catalogConfig.badge), asi mover el global
+            // sigue moviendo tambien las tarjetas retocadas.
+            const numeroFinito = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+            const badgeDx = numeroFinito(rule.overlayBadgeOffsetX);
+            const badgeDy = numeroFinito(rule.overlayBadgeOffsetY);
+            const badgeScale = Math.min(4, Math.max(0.3, Number(rule.overlayBadgeScale) || 1));
+            // Tamaño del comando de chat de ESTA tarjeta, multiplica al
+            // global (overlayCommandScale de la raiz de rules.json).
+            const commandScale = Math.min(4, Math.max(0.3, Number(rule.overlayCommandScale) || 1));
+
+            // Relleno interior de ESTA tarjeta en px. Sin el campo (o
+            // vacio) manda el global (catalogConfig.padding).
+            const padding = rule.overlayPadding === undefined || rule.overlayPadding === null
+                || rule.overlayPadding === '' || !Number.isFinite(Number(rule.overlayPadding))
+                ? null
+                : Math.min(40, Math.max(0, Number(rule.overlayPadding)));
+
+            // Mismo criterio de siempre: lo que no es "bueno" es malo.
+            const team = rule.team === 'bueno' ? 'bueno' : 'malo';
+
             const entry = {
                 key: ruleKey(rule),
+                team,
                 span,
                 rowSpan,
                 textBoost,
+                badgeDx,
+                badgeDy,
+                badgeScale,
+                commandScale,
+                padding,
                 // Texto de la tarjeta. Por defecto el nombre de la
                 // accion, pero una regla puede poner el suyo con
                 // "overlayText": mas corto, mas gracioso, o
                 // simplemente el que entra en el ancho que tiene.
                 label: String(rule.overlayText ?? rule.actionName ?? rule.action ?? ''),
+                // Comando de chat (tokens), tal cual se escribio en el
+                // panel. Sale debajo del texto principal a la mitad de
+                // tamaño. Vacio = la regla no se pide por chat.
+                chatCommand: String(rule.chatCommand ?? '').trim(),
+                // Lo que cuesta en tokens, a la derecha del comando con
+                // el token plateado: "!lento ····· 2 🪙". Sin precio = 0.
+                tokenCost: Math.max(0, Math.round(Number(rule.tokenCost) || 0)),
                 // Las reglas "like" no tienen un regalo real: se usa el
                 // icono generico de like y el numero de likes como
                 // "nombre de regalo" para el alt/etiqueta.
@@ -369,8 +452,13 @@ async function iniciarModoCatalog(initialCatalogConfig) {
                 // no tiene sentido mostrar N imagenes ahi) y el join
                 // con " / " de TODOS es lo que ve buildItem() para la
                 // linea de texto aparte (ver "giftNames" mas abajo).
-                giftName: isLikeRule ? 'Like' : (giftNames[0] || ''),
-                giftLabel: isLikeRule ? `${rule.threshold} likes` : giftNames.join(' / '),
+                // Un follow tampoco tiene regalo: su esquina lleva el
+                // icono del propio evento, igual que el corazon de los
+                // likes (pero sin numero: no hay umbral que contar).
+                giftName: isLikeRule ? 'Like' : (isFollowRule ? 'Follow' : (giftNames[0] || '')),
+                giftLabel: isLikeRule
+                    ? `${rule.threshold} likes`
+                    : (isFollowRule ? 'Nuevo seguidor' : giftNames.join(' / ')),
                 giftNames,
                 actionName: rule.actionName || rule.action || '',
                 actionImage: rule.overlayImage || '',
@@ -380,14 +468,16 @@ async function iniciarModoCatalog(initialCatalogConfig) {
                 likeCount: isLikeRule ? formatLikeCount(rule.threshold) : '',
             };
 
-            if (rule.team === 'bueno') {
+            if (team === 'bueno') {
                 bueno.push(entry);
             } else {
                 malo.push(entry);
             }
+
+            todas.push(entry);
         });
 
-        return { bueno, malo };
+        return { bueno, malo, todas };
     }
 
     // El texto no puede escalar con CSS puro de forma fiable en el
@@ -513,7 +603,10 @@ async function iniciarModoCatalog(initialCatalogConfig) {
 
     function buildItem(entry, ancho) {
         const item = document.createElement('div');
-        item.className = 'catalog-item catalog-item-entering';
+        // El color del equipo (borde, badge) cuelga de la propia
+        // tarjeta y no de la columna: asi vale igual en el cuadro
+        // unico, donde buenos y malos comparten cuadricula.
+        item.className = `catalog-item catalog-item-${entry.team} catalog-item-entering`;
 
         // Una tarjeta que ocupa mas de una columna se reparte distinto:
         // imagen a la izquierda y texto grande a la derecha. El ancho
@@ -529,6 +622,30 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         // manda en todo lo demas.
         if (entry.textBoost !== 1) {
             item.style.setProperty('--catalog-text-boost', String(entry.textBoost));
+        }
+
+        // Retoques por regla del numero y del relleno. Mismo criterio:
+        // solo se ponen si la regla los trae. Las del numero son
+        // variables APARTE de las globales (el CSS las suma o
+        // multiplica); el relleno, en cambio, pisa al global.
+        if (entry.badgeDx !== 0) {
+            item.style.setProperty('--catalog-badge-x-regla', `${entry.badgeDx}px`);
+        }
+
+        if (entry.badgeDy !== 0) {
+            item.style.setProperty('--catalog-badge-y-regla', `${entry.badgeDy}px`);
+        }
+
+        if (entry.commandScale !== 1) {
+            item.style.setProperty('--catalog-command-scale-regla', String(entry.commandScale));
+        }
+
+        if (entry.badgeScale !== 1) {
+            item.style.setProperty('--catalog-badge-scale-regla', String(entry.badgeScale));
+        }
+
+        if (entry.padding !== null) {
+            item.style.setProperty('--catalog-padding', `${entry.padding}px`);
         }
 
         // encodeURIComponent: hay regalos con espacios y apostrofes
@@ -555,7 +672,16 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         hideOnError(main);
         // Hasta que no carga no se sabe su proporcion, y sin eso no
         // se puede pegar el badge a la imagen.
-        main.addEventListener('load', () => layoutItem(item));
+        main.addEventListener('load', () => {
+            // Su forma: en la tarjeta ancha la caja de la imagen toma
+            // todo el alto y este ancho (ver .catalog-item-wide en el
+            // CSS), asi una imagen cuadrada o apaisada no sale enana.
+            if (main.naturalWidth && main.naturalHeight) {
+                mainWrap.style.setProperty('--catalog-img-ratio', String(main.naturalWidth / main.naturalHeight));
+            }
+
+            layoutItem(item);
+        });
         mainWrap.appendChild(main);
 
         // "x2", "x50"... para spawns con mas de 1, o "12s", "20s"...
@@ -577,13 +703,33 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             const giftWrap = document.createElement('div');
             giftWrap.className = 'catalog-gift-wrap';
 
-            const gift = document.createElement('img');
-            gift.className = 'catalog-gift-badge';
-            gift.src = giftSrc;
-            gift.alt = entry.giftLabel;
-            hideOnError(gift);
-            gift.addEventListener('load', () => layoutItem(item));
-            giftWrap.appendChild(gift);
+            // Varios regalos (rule.gifts): uno encima de otro en la
+            // esquina, cada uno en su propia caja. Con uno solo (o en
+            // likes/follow) se dibuja como siempre.
+            if (entry.giftNames.length > 1 && !entry.likeCount) {
+                giftWrap.classList.add('catalog-gift-stack');
+
+                entry.giftNames.forEach((name) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'catalog-gift-cell';
+
+                    const gift = document.createElement('img');
+                    gift.className = 'catalog-gift-badge';
+                    gift.src = `images/regalos/${encodeURIComponent(name)}.png`;
+                    gift.alt = name;
+                    hideOnError(gift);
+                    cell.appendChild(gift);
+                    giftWrap.appendChild(cell);
+                });
+            } else {
+                const gift = document.createElement('img');
+                gift.className = 'catalog-gift-badge';
+                gift.src = giftSrc;
+                gift.alt = entry.giftLabel;
+                hideOnError(gift);
+                gift.addEventListener('load', () => layoutItem(item));
+                giftWrap.appendChild(gift);
+            }
 
             // "50", "300", "1k"... centrado sobre el corazon. Solo en
             // reglas "like": las de regalo no tienen un numero que
@@ -607,7 +753,40 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         // el ancho que tiene la tarjeta).
         label.textContent = entry.label;
 
-        item.append(visual, label);
+        // "!lento" debajo del texto principal, a la mitad de tamaño.
+        // En la tarjeta normal (columna) basta con ponerlo a
+        // continuacion; en la ancha el texto va a la DERECHA de la
+        // imagen, asi que etiqueta y comando se agrupan en un bloque
+        // propio para que queden uno encima del otro. Sin comando no
+        // se envuelve nada: las tarjetas de siempre no cambian.
+        if (entry.chatCommand) {
+            const command = document.createElement('span');
+            command.className = 'catalog-chat-command';
+
+            // Comando a la izquierda y coste a la derecha
+            // (justify-content: space-between), con el token PLATEADO:
+            // el dorado es el de las monedas de TikTok.
+            const name = document.createElement('span');
+            name.className = 'catalog-chat-name';
+            name.textContent = entry.chatCommand;
+
+            const cost = document.createElement('span');
+            cost.className = 'catalog-chat-cost';
+            cost.innerHTML = `<span>${entry.tokenCost}</span>${TOKEN_SVG}`;
+
+            command.append(name, cost);
+
+            if (ancho > 1) {
+                const text = document.createElement('div');
+                text.className = 'catalog-text-block';
+                text.append(label, command);
+                item.append(visual, text);
+            } else {
+                item.append(visual, label, command);
+            }
+        } else {
+            item.append(visual, label);
+        }
 
         // Varios regalos para la misma accion (2026-09-20): sus
         // nombres, separados por "/", en una segunda linea chica
@@ -748,7 +927,7 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         // tarjetas cada pocos segundos y la animacion de entrada se
         // reiniciaria sola.
         const huella = pagina
-            .map((p) => `${p.entry.key}@${p.fila},${p.col}:${p.ancho}x${p.alto}t${p.entry.textBoost}`)
+            .map((p) => `${p.entry.key}#${p.entry.team}${p.entry.chatCommand}(${p.entry.tokenCost})@${p.fila},${p.col}:${p.ancho}x${p.alto}t${p.entry.textBoost}b${p.entry.badgeDx},${p.entry.badgeDy},${p.entry.badgeScale}c${p.entry.commandScale}p${p.entry.padding}`)
             .join('|');
 
         if (huella === team.painted) {
@@ -814,6 +993,9 @@ async function iniciarModoCatalog(initialCatalogConfig) {
     // run-overlay.bat de toda la vida, o un servidor de pruebas).
     let origenReglas = null;
 
+    // Lo que dice config.json -> "skin". Se relee en cada sondeo.
+    let skinConfig = '';
+
     async function pedirReglas() {
         const candidatos = origenReglas !== null
             ? [origenReglas]
@@ -849,6 +1031,7 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             const configRes = await fetch('config.json', { cache: 'no-store' });
             const config = await configRes.json();
             catalogConfig = config.catalogConfig || catalogConfig;
+            skinConfig = String(config.skin || '').trim();
         } catch {
             // config.json a medio guardar: se sigue con la ultima buena.
         }
@@ -881,18 +1064,67 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             `${Number.isFinite(badgeY) ? badgeY : 0}px`
         );
 
+        // Relleno interior de todas las tarjetas (catalogConfig.padding,
+        // px). Sin la clave, el de siempre (4 px del CSS). Una regla
+        // puede pisarlo con su overlayPadding.
+        const padding = Number(catalogConfig.padding);
+
+        if (Number.isFinite(padding) && padding >= 0) {
+            container.style.setProperty('--catalog-padding', `${Math.min(40, padding)}px`);
+        } else {
+            container.style.removeProperty('--catalog-padding');
+        }
+
+        // Tarjeta ancha: hasta que parte del ancho puede ocupar la
+        // imagen (con el regalo), que ahora toma todo el alto
+        // (catalogConfig.wideImageMax, 0.2-0.8; sin la clave, 0.40).
+        const wideMax = Number(catalogConfig.wideImageMax);
+
+        if (Number.isFinite(wideMax) && wideMax > 0) {
+            container.style.setProperty('--catalog-wide-img-max', `${Math.round(Math.min(0.8, Math.max(0.2, wideMax)) * 100)}%`);
+        } else {
+            container.style.removeProperty('--catalog-wide-img-max');
+        }
+
+        const layout = readLayout();
+        const unico = layout === 'unico';
+
+        // Se enseña un reparto u otro. El que no se usa se queda
+        // vacio (syncTeam con []), asi al volver a mostrarse se
+        // repinta entero en vez de enseñar tarjetas viejas.
+        teams.bueno.wrapEl.hidden = unico;
+        teams.malo.wrapEl.hidden = unico;
+        teams.unico.wrapEl.hidden = !unico;
+
         applyLayout(teams.bueno, readDims(catalogConfig.bueno));
         applyLayout(teams.malo, readDims(catalogConfig.malo));
+        applyLayout(teams.unico, readUnicoDims());
 
         applyTitle(teams.bueno, catalogConfig.bueno);
         applyTitle(teams.malo, catalogConfig.malo);
+        applyTitle(teams.unico, catalogConfig.unico);
 
         try {
             const data = await pedirReglas();
-            const { bueno, malo } = buildEntries(data.rules || []);
 
-            syncTeam(teams.bueno, bueno);
-            syncTeam(teams.malo, malo);
+            // "auto": el skin del juego activo (overlaySkin de su
+            // perfil), que viaja con las reglas. Asi cambiar de juego
+            // en el panel cambia tambien el aspecto, sin tocar OBS.
+            aplicarSkin(skinConfig === 'auto' ? data.skin : skinConfig);
+
+            // Tamaño global del comando de chat (overlayCommandScale en
+            // la raiz de rules.json, se edita desde el panel).
+            const cmdScale = Number(data.commandScale);
+            container.style.setProperty(
+                '--catalog-command-scale',
+                String(Number.isFinite(cmdScale) && cmdScale > 0 ? cmdScale : 1)
+            );
+
+            const { bueno, malo, todas } = buildEntries(data.rules || []);
+
+            syncTeam(teams.bueno, unico ? [] : bueno);
+            syncTeam(teams.malo, unico ? [] : malo);
+            syncTeam(teams.unico, unico ? todas : []);
         } catch (err) {
             console.error('Error cargando /api/rules:', err);
         }
@@ -910,7 +1142,8 @@ async function iniciarModoCatalog(initialCatalogConfig) {
     setInterval(() => {
         nextPage(teams.bueno);
         nextPage(teams.malo);
-    }, catalogConfig.rotateIntervalMs || 4000);
+        nextPage(teams.unico);
+    },catalogConfig.rotateIntervalMs || 4000);
 }
 
 // ============================================================
@@ -921,6 +1154,24 @@ async function iniciarModoCatalog(initialCatalogConfig) {
 // cargarInteracciones() sin tocar ni una linea.
 // "catalog" = el modo nuevo de arriba.
 // ============================================================
+
+/**
+ * Pone (o quita, con '') el data-skin del <html>. Sin skin no
+ * engancha ninguna regla [data-skin=...] y el overlay se ve como
+ * siempre.
+ */
+function aplicarSkin(nombre) {
+    const skin = String(nombre || '').trim();
+    const html = document.documentElement;
+
+    if (skin) {
+        if (html.dataset.skin !== skin) {
+            html.dataset.skin = skin;
+        }
+    } else if (html.dataset.skin !== undefined) {
+        delete html.dataset.skin;
+    }
+}
 
 async function init() {
     const configRes = await fetch('config.json');
@@ -940,12 +1191,15 @@ async function init() {
     // ve exactamente como siempre. Ese es el comportamiento por
     // defecto a proposito: un config.json viejo sigue funcionando.
     //
-    // Skins disponibles hoy: "megaman".
+    // Skins disponibles hoy: "megaman" (style.css), "mario64",
+    // "crash" y "sotn" (skins/*.css). "auto" = el del juego activo
+    // (overlaySkin de su perfil en la app); solo en modo "catalog",
+    // que es el que habla con la app.
     // ------------------------------------------------------------
     const skin = String(config.skin || '').trim();
 
-    if (skin) {
-        document.documentElement.dataset.skin = skin;
+    if (skin !== 'auto') {
+        aplicarSkin(skin);
     }
 
     if (mode === 'catalog') {

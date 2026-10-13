@@ -243,8 +243,15 @@
 
         pintado = huella;
 
+        // Sin nadie en el ranking no se dibuja NADA: ni el cartel de
+        // "todavia nadie" ni el panel de fondo, que ocupa la fuente
+        // entera y en OBS quedaria como un rectangulo oscuro vacio.
+        // En cuanto llega el primero vuelve a aparecer solo. Para
+        // colocar la fuente en OBS con el panel lleno esta "?test".
+        refs.panel.hidden = entradas.length === 0;
+
         if (entradas.length === 0) {
-            refs.lista.innerHTML = '<li class="top-vacio">Todavía nadie</li>';
+            refs.lista.innerHTML = '';
             return;
         }
 

@@ -18,7 +18,7 @@
   "fuente": "pixel",
 
   "_fondo": "Panel de atras. 0 = sin fondo, solo las filas flotando sobre lo que haya en OBS.",
-  "fondoAlpha": 0.75,
+  "fondoAlpha": 0,
 
   "_escala": "Multiplica el tamano de TODO. 1 = el que se calcula segun el alto de la fuente de OBS.",
   "escala": 1

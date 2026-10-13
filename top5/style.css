@@ -84,6 +84,14 @@ body {
   padding: calc(var(--top-size) * 0.45);
 }
 
+/* Sin nadie en el ranking, script.js le pone "hidden" al panel para
+   que en OBS no quede un rectangulo oscuro vacio. Hace falta esta
+   regla: la de arriba pone "display: flex" y le gana al display:none
+   que el navegador le da solo a [hidden]. Igual que .top-titulo. */
+.top-panel[hidden] {
+  display: none;
+}
+
 .top-titulo {
   flex: 0 0 auto;
   font-size: 0.85em;
@@ -230,15 +238,4 @@ body {
   flex: 0 0 auto;
   width: 0.95em;
   height: 0.95em;
-}
-
-.top-vacio {
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7em;
-  color: rgba(255, 255, 255, 0.45);
-  -webkit-text-stroke: 0.05em #000;
-  paint-order: stroke fill;
 }
