@@ -20,7 +20,8 @@
 
     const POR_DEFECTO = {
         cuantos: 20,
-        porPagina: 5,
+        porPagina: 8,
+        ocultarTrasDias: 2,
         rotarMs: 4000,
         sondeoMs: 2500,
         avatares: true,
@@ -51,7 +52,7 @@
     let pagina = 0;
 
     function porPagina() {
-        return Math.max(1, Number(config.porPagina) || 5);
+        return Math.max(1, Number(config.porPagina) || 8);
     }
 
     function totalPaginas() {
@@ -175,7 +176,7 @@
         const filas = Math.max(1, cuantasFilas) +
             (config.mostrarTitulo ? 1.4 : 0.3);
 
-        const base = (window.innerHeight / filas) * 0.36;
+        const base = (window.innerHeight / filas) * 0.45;
         const escala = Number(config.escala) || 1;
 
         // Redondeado a px entero: de ahi salen todos los demas
@@ -213,8 +214,8 @@
             ${avatar}
             <span class="tk-datos">
               <span class="tk-nombre">${esc(recortar(entrada.name))}</span>
+              <span class="tk-saldo">${TOKEN}${esc(entrada.tokens)}</span>
             </span>
-            <span class="tk-saldo">${TOKEN}${esc(entrada.tokens)}</span>
           </li>`;
     }
 
@@ -310,7 +311,10 @@
         }
 
         try {
-            const res = await fetch(`/api/tokens?limit=${cuantos}&_=${Date.now()}`);
+            // Quien lleve "ocultarTrasDias" sin likes ni comandos no se
+            // pide (lo filtra el servidor). Su saldo no se toca.
+            const dias = Math.max(0, Number(config.ocultarTrasDias) || 0);
+            const res = await fetch(`/api/tokens?limit=${cuantos}&dias=${dias}&_=${Date.now()}`);
 
             if (!res.ok) {
                 return;

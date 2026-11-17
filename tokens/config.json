@@ -5,7 +5,10 @@
   "cuantos": 20,
 
   "_porPagina": "Cuantas filas se ven a la vez. Si hay mas espectadores con saldo que esto, el overlay pagina solo cada 'rotarMs'.",
-  "porPagina": 5,
+  "porPagina": 8,
+
+  "_ocultarTrasDias": "Esconde a quien lleve estos dias sin dar likes ni usar comandos (su saldo se conserva y vuelve a salir en cuanto haga algo). 0 = no esconder a nadie.",
+  "ocultarTrasDias": 2,
 
   "_rotarMs": "Cada cuanto pasa a la siguiente pagina. Solo importa si hay mas de 'porPagina' espectadores con saldo.",
   "rotarMs": 4000,
@@ -13,7 +16,7 @@
   "sondeoMs": 2500,
 
   "_maxLetras": "Corta el nombre a estos caracteres y le pone '…' si era mas largo. 0 = sin cortar.",
-  "maxLetras": 7,
+  "maxLetras": 12,
 
   "_avatares": "false = solo nombre y numero de tokens.",
   "avatares": true,

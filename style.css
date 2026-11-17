@@ -785,6 +785,33 @@ body {
   text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
 }
 
+/* "x5" de giftsPerAction (2026-11-14): al 75% del tamaño del numero
+   de likes, en la esquina de abajo a la derecha del regalo. top/left
+   los pone layoutItem() (script.js) en esa esquina. */
+.catalog-gift-count {
+  position: absolute;
+  top: 100%;
+  left: 100%;
+  transform: translate(-100%, -100%);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: 900;
+  font-size: calc(var(--catalog-label-size, 14px) * 1.3 * 0.75);
+  line-height: 1;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.95);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+[data-skin="megaman"] .catalog-gift-count {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-weight: 400;
+  font-size: calc(var(--catalog-label-size, 14px) * 0.95 * 0.75);
+  color: var(--mm-blanco);
+  text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+}
+
 /* --- imagenes --- */
 
 /* Los regalos de TikTok son PNG grandes y suaves; el resto del

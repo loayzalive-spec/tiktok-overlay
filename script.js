@@ -302,6 +302,25 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         return rule.giftName ? [String(rule.giftName).trim()] : [];
     }
 
+    // giftsPerAction (2026-11-14): cuantos regalos hacen UNA accion,
+    // en el mismo orden que giftNamesOf(). Cada entrada de rule.gifts
+    // puede traer el suyo (Rose cada 5, Spinning Soccer cada 1); sin el,
+    // el de la regla. "" = 1 (no se dibuja nada); si no, "x5".
+    function giftCountsOf(rule) {
+        const texto = (v) => {
+            const n = Math.floor(Number(v) || 1);
+            return n > 1 ? `x${n}` : '';
+        };
+
+        if (Array.isArray(rule.gifts) && rule.gifts.length > 0) {
+            return rule.gifts
+                .filter((g) => String(g && g.name || '').trim())
+                .map((g) => texto(g.giftsPerAction ?? rule.giftsPerAction));
+        }
+
+        return rule.giftName ? [texto(rule.giftsPerAction)] : [];
+    }
+
     function ruleKey(rule) {
         // Las reglas "like" no tienen giftName; el threshold hace de
         // identificador unico en su lugar (dos reglas "like" con el
@@ -316,6 +335,91 @@ async function iniciarModoCatalog(initialCatalogConfig) {
 
         return `${id}|${rule.actionName || rule.action || ''}`;
     }
+
+    // ------------------------------------------------------------
+    // CODIGO ESCONDIDO (catalogConfig.codigo, p. ej. "0134578")
+    // ------------------------------------------------------------
+    //
+    // Cada cifra del codigo cambia UNA letra del texto de UNA tarjeta,
+    // en orden (la 1a cifra en una tarjeta, la 2a en una posterior...),
+    // repartidas a lo largo de todo el catalogo: "invencible" ->
+    // "invenc1ble", "rapido" -> "r4pido". Quien junte las cifras y
+    // escriba "!0134578" en el chat cobra la adivinanza que tenga ese
+    // comando en data/secretos.json (pestaña Tokens del panel). Una
+    // tarjeta sin la letra que toca se salta y la cifra pasa a la
+    // siguiente. Sin la clave (o vacia) no se cambia nada.
+    //
+    // Solo el texto principal: el comando de chat (!lento) NO se
+    // toca, que la gente tiene que poder escribirlo.
+    const LETRAS_DE_CIFRA = {
+        0: 'oóOÓ', 1: 'iíIÍlL', 2: 'zZ', 3: 'eéEÉ', 4: 'aáAÁ',
+        5: 'sS', 6: 'gG', 7: 'tT', 8: 'bB', 9: 'gG',
+    };
+
+    function letraParaCifra(texto, cifra) {
+        const letras = LETRAS_DE_CIFRA[cifra] || '';
+        let primera = -1;
+
+        for (let i = 0; i < texto.length; i++) {
+            if (!letras.includes(texto[i])) {
+                continue;
+            }
+            // Mejor una letra de dentro de la palabra que la primera:
+            // "invenc1ble" se lee, "1nvencible" cuesta mas.
+            const inicioPalabra = i === 0 || /[\s\-_/(]/.test(texto[i - 1]);
+            if (!inicioPalabra) {
+                return i;
+            }
+            if (primera < 0) {
+                primera = i;
+            }
+        }
+
+        return primera;
+    }
+
+    // Lo enciende el panel: botón "🔢 En el overlay" de la adivinanza
+    // (Tokens -> 🔐 Adivinanzas), que llega con /api/rules como
+    // "codigo". Vacío = apagado o ya cobrado. catalogConfig.codigo
+    // queda solo de respaldo para una app vieja que no manda el campo.
+    let codigoDelPanel = null;
+
+    function esconderCodigo(entries) {
+        const codigo = String(codigoDelPanel ?? catalogConfig.codigo ?? '').replace(/[^0-9]/g, '');
+
+        if (!codigo || entries.length === 0) {
+            return;
+        }
+
+        // Cada cifra se busca a partir de su "tramo", para que queden
+        // repartidas por todo el catalogo y no las 7 seguidas.
+        const paso = Math.max(1, Math.floor(entries.length / codigo.length));
+        let desde = 0;
+
+        for (let k = 0; k < codigo.length; k++) {
+            const cifra = codigo[k];
+            let j = Math.max(desde, k * paso);
+
+            for (; j < entries.length; j++) {
+                const pos = letraParaCifra(entries[j].label, cifra);
+                if (pos >= 0) {
+                    const t = entries[j].label;
+                    entries[j].label = t.slice(0, pos) + cifra + t.slice(pos + 1);
+                    break;
+                }
+            }
+
+            // Una por tarjeta: la siguiente cifra va en una posterior.
+            desde = j + 1;
+            if (desde >= entries.length) {
+                break;
+            }
+        }
+    }
+
+    // Precio de la sorpresa de tokens (null = cada uno el suyo). Lo
+    // pone refresh() con lo que llega de /api/rules.
+    let precioComandos = null;
 
     function buildEntries(rules) {
         const bueno = [];
@@ -440,7 +544,12 @@ async function iniciarModoCatalog(initialCatalogConfig) {
                 chatCommand: String(rule.chatCommand ?? '').trim(),
                 // Lo que cuesta en tokens, a la derecha del comando con
                 // el token plateado: "!lento ····· 2 🪙". Sin precio = 0.
-                tokenCost: Math.max(0, Math.round(Number(rule.tokenCost) || 0)),
+                // Con la sorpresa de tokens activa (precioComandos), los que
+                // tienen precio salen con ese; los gratis siguen a 0.
+                tokenCost: (() => {
+                    const coste = Math.max(0, Math.round(Number(rule.tokenCost) || 0));
+                    return coste > 0 && precioComandos !== null ? precioComandos : coste;
+                })(),
                 // Las reglas "like" no tienen un regalo real: se usa el
                 // icono generico de like y el numero de likes como
                 // "nombre de regalo" para el alt/etiqueta.
@@ -466,6 +575,10 @@ async function iniciarModoCatalog(initialCatalogConfig) {
                 // Numero centrado sobre el corazon, solo para reglas
                 // "like". "" para reglas de regalo: no se dibuja nada.
                 likeCount: isLikeRule ? formatLikeCount(rule.threshold) : '',
+                // "x5" sobre cada regalo con giftsPerAction (mismo
+                // orden que giftNames), igual que los likes sobre el
+                // corazon.
+                giftCounts: isGiftRule ? giftCountsOf(rule) : [],
             };
 
             if (team === 'bueno') {
@@ -476,6 +589,11 @@ async function iniciarModoCatalog(initialCatalogConfig) {
 
             todas.push(entry);
         });
+
+        // Las cifras siguen el orden en que se VEN: en "unico" el del
+        // rules.json; en "equipos", primero el cuadro bueno y luego el
+        // malo. Los objetos son los mismos en las tres listas.
+        esconderCodigo(readLayout() === 'unico' ? todas : [...bueno, ...malo]);
 
         return { bueno, malo, todas };
     }
@@ -585,6 +703,20 @@ async function iniciarModoCatalog(initialCatalogConfig) {
                 likeCount.style.left = `${rect.left + (rect.width / 2)}px`;
             }
         }
+
+        // "x5" de giftsPerAction: esquina de abajo a la derecha del
+        // dibujo de SU regalo (el img hermano dentro de la misma caja,
+        // que es la celda si hay varios regalos).
+        item.querySelectorAll('.catalog-gift-count').forEach((count) => {
+            const caja = count.parentElement;
+            const img = caja && caja.querySelector('.catalog-gift-badge');
+            const rect = img && containedRect(img, caja);
+
+            if (rect) {
+                count.style.top = `${rect.top + rect.height}px`;
+                count.style.left = `${rect.left + rect.width}px`;
+            }
+        });
     }
 
     // Al cambiar el tamaño de la fuente de OBS (o las columnas/filas)
@@ -709,7 +841,7 @@ async function iniciarModoCatalog(initialCatalogConfig) {
             if (entry.giftNames.length > 1 && !entry.likeCount) {
                 giftWrap.classList.add('catalog-gift-stack');
 
-                entry.giftNames.forEach((name) => {
+                entry.giftNames.forEach((name, i) => {
                     const cell = document.createElement('div');
                     cell.className = 'catalog-gift-cell';
 
@@ -718,7 +850,18 @@ async function iniciarModoCatalog(initialCatalogConfig) {
                     gift.src = `images/regalos/${encodeURIComponent(name)}.png`;
                     gift.alt = name;
                     hideOnError(gift);
+                    gift.addEventListener('load', () => layoutItem(item));
                     cell.appendChild(gift);
+
+                    // "x5" (giftsPerAction de esa entrada), abajo a la
+                    // derecha del regalo (layoutItem).
+                    if (entry.giftCounts[i]) {
+                        const count = document.createElement('span');
+                        count.className = 'catalog-gift-count';
+                        count.textContent = entry.giftCounts[i];
+                        cell.appendChild(count);
+                    }
+
                     giftWrap.appendChild(cell);
                 });
             } else {
@@ -740,6 +883,17 @@ async function iniciarModoCatalog(initialCatalogConfig) {
                 const count = document.createElement('span');
                 count.className = 'catalog-like-count';
                 count.textContent = entry.likeCount;
+                giftWrap.appendChild(count);
+            }
+
+            // Un solo regalo con giftsPerAction: su "x5" abajo a la
+            // derecha del regalo (layoutItem).
+            const numeroRegalo = entry.giftNames.length > 1 ? '' : (entry.giftCounts[0] || '');
+
+            if (numeroRegalo) {
+                const count = document.createElement('span');
+                count.className = 'catalog-gift-count';
+                count.textContent = numeroRegalo;
                 giftWrap.appendChild(count);
             }
 
@@ -927,7 +1081,7 @@ async function iniciarModoCatalog(initialCatalogConfig) {
         // tarjetas cada pocos segundos y la animacion de entrada se
         // reiniciaria sola.
         const huella = pagina
-            .map((p) => `${p.entry.key}#${p.entry.team}${p.entry.chatCommand}(${p.entry.tokenCost})@${p.fila},${p.col}:${p.ancho}x${p.alto}t${p.entry.textBoost}b${p.entry.badgeDx},${p.entry.badgeDy},${p.entry.badgeScale}c${p.entry.commandScale}p${p.entry.padding}`)
+            .map((p) => `${p.entry.key}#${p.entry.team}${p.entry.chatCommand}(${p.entry.tokenCost})@${p.fila},${p.col}:${p.ancho}x${p.alto}t${p.entry.textBoost}b${p.entry.badgeDx},${p.entry.badgeDy},${p.entry.badgeScale}c${p.entry.commandScale}p${p.entry.padding}n${p.entry.giftCounts.join(',')}`)
             .join('|');
 
         if (huella === team.painted) {
@@ -1120,6 +1274,11 @@ async function iniciarModoCatalog(initialCatalogConfig) {
                 String(Number.isFinite(cmdScale) && cmdScale > 0 ? cmdScale : 1)
             );
 
+            codigoDelPanel = typeof data.codigo === 'string' ? data.codigo : null;
+            // (2026-11-06) Sorpresa de tokens activa: la app manda
+            // precioComandos (1) y todo comando con precio sale con ese.
+            const precio = Number(data.precioComandos);
+            precioComandos = Number.isFinite(precio) && precio > 0 ? precio : null;
             const { bueno, malo, todas } = buildEntries(data.rules || []);
 
             syncTeam(teams.bueno, unico ? [] : bueno);
@@ -1132,18 +1291,23 @@ async function iniciarModoCatalog(initialCatalogConfig) {
 
     await refresh();
 
-    // Los intervalos se leen una sola vez: cambiarlos si requiere
-    // refrescar la fuente de OBS.
+    // El sondeo se lee una sola vez: cambiarlo si requiere refrescar
+    // la fuente de OBS.
     setInterval(refresh, catalogConfig.pollRulesIntervalMs || 3000);
 
     // Cada equipo avanza su propia pagina. Van en el mismo intervalo
     // pero cada uno tiene su numero de paginas, asi que se
     // desincronizan solos en cuanto uno da la vuelta antes.
-    setInterval(() => {
+    // (2026-11-14) rotateIntervalMs se vuelve a leer en cada vuelta
+    // (refresh() relee config.json): cambiarlo desde el panel de la app
+    // (Overlays y enlaces) se aplica sin refrescar OBS.
+    const rotar = () => {
         nextPage(teams.bueno);
         nextPage(teams.malo);
         nextPage(teams.unico);
-    },catalogConfig.rotateIntervalMs || 4000);
+        setTimeout(rotar, Math.max(1000, Number(catalogConfig.rotateIntervalMs) || 4000));
+    };
+    setTimeout(rotar, Math.max(1000, Number(catalogConfig.rotateIntervalMs) || 4000));
 }
 
 // ============================================================
