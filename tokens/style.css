@@ -79,7 +79,7 @@ body {
 }
 
 [data-fuente="pixel"] .tk-saldo {
-  font-size: round(down, calc(var(--tk-size) * 0.9), 1px);
+  font-size: round(down, calc(var(--tk-size) * 0.6), 1px);
 }
 
 /* ------------------------------------------------------------
@@ -141,8 +141,8 @@ body {
 .tk-foto {
   position: relative;
   flex: 0 0 auto;
-  width: calc(var(--tk-size) * 1.1);
-  height: calc(var(--tk-size) * 1.1);
+  width: calc(var(--tk-size) * 1.5);
+  height: calc(var(--tk-size) * 1.5);
   border-radius: 50%;
   overflow: hidden;
   background: #1b2130;
@@ -188,21 +188,19 @@ body {
 .tk-saldo {
   display: flex;
   align-items: center;
-  gap: calc(var(--tk-size) * 0.2);
-  font-size: calc(var(--tk-size) * 0.9);
+  gap: 0.3em;
+  font-size: calc(var(--tk-size) * 0.6);
+  line-height: 1.2;
   color: var(--tk-oro);
   -webkit-text-stroke: calc(var(--tk-size) * 0.045) #000;
   paint-order: stroke fill;
 }
 
 .tk-icono {
-  width: calc(var(--tk-size) * 0.85);
-  height: calc(var(--tk-size) * 0.85);
+  width: 1.3em;
+  height: 1.3em;
   flex: 0 0 auto;
 }
 
-/* El saldo va justo detras del nombre, sin hueco que lo empuje a la
-   derecha, y nunca se encoge: si falta sitio cede el nombre. */
-.tk-fila > .tk-saldo {
-  flex: 0 0 auto;
-}
+/* El saldo va en una segunda linea, chico, debajo del nombre (como
+   el numero del overlay de donadores). */

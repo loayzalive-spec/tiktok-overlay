@@ -11,7 +11,7 @@
 
   "catalogConfig": {
     "apiBase": "http://127.0.0.1:3000",
-    "rotateIntervalMs": 4000,
+    "rotateIntervalMs": 7000,
     "pollRulesIntervalMs": 3000,
     "gap": 6,
     "badge": { "scale": 1, "offsetX": 0, "offsetY": 0 },
